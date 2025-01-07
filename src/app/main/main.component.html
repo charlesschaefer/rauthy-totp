@@ -1,0 +1,50 @@
+<main class="container">
+  <h1>{{"Welcome to TOTP Manager" | transloco}}</h1>
+
+  <div>
+    @if (!totpItems().size) {
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div>
+        <input formControlName="password" type="password" [placeholder]="'Enter password' | transloco" />
+        <button type="submit">{{"Submit" | transloco}}</button>
+      </div>
+    </form>
+    }
+
+    <div *ngIf="showDialog()">
+      <p>{{"No services found!" | transloco}}</p>
+    </div>
+
+    <div *ngIf="totpItems().size > 0">
+      <h2>{{"Available Services" | transloco}}</h2>
+      <ul>
+        <li *ngFor="let service of totpItems().values()">{{ service.name }} ({{ service.issuer }})</li>
+      </ul>
+    </div>
+
+    <p-dialog [(visible)]="showDialog" header="Add Service" [modal]="true">
+      <p>
+        {{"Choose to scan a QR code or paste a string to add a new service." | transloco}}
+      </p>
+      @if (!showURLInput()) {
+        <div class="flex">
+          <p-button icon="pi pi-qrcode" severity="info" variant="text" [raised]="true"
+            (onClick)="scanQRCode($event)">{{"Scan QRCode" | transloco}}</p-button>
+          <p-button icon="pi pi-clipboard" severity="help" variant="text" [raised]="true"
+            (onClick)="showURLInput.set(true)">{{"Paste URL" | transloco}}</p-button>
+        </div>
+      } @else {
+        <p-card [header]="'Add service by URL' | transloco">
+          <form [formGroup]="urlInput" (ngSubmit)="onSubmitServiceUrl()">
+            <input type="text" pInputText formControlName="serviceUrl"
+              [placeholder]="'Paste here the URL your service provided' | transloco" />
+            <button type="submit" pButton severity="info">{{"Add Service" | transloco}}</button>
+          </form>
+        </p-card>
+      }
+
+
+    </p-dialog>
+  </div>
+</main>
+<p-toast position="bottom-left" />
