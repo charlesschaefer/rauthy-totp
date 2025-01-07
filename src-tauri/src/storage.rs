@@ -1,15 +1,17 @@
-use std::borrow::Cow;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use std::fs::File;
 use std::io::{Write, Read};
 use bincode;
+use totp_rs::{TOTP, Secret, Algorithm};
 
 use crate::crypto::*;
+use crate::totp::*;
 
 
 const STORAGE_FILE: &str = "Rauthy.bin";
+type Error = &'static str;
 
 // TOTP URI format:
 // otpauth://totp/{issuer}:{displayUserName}?secret={secretKey}&issuer={issuer}&algorithm={algorithm}&digits={digits}&period={period}
@@ -30,23 +32,15 @@ const STORAGE_FILE: &str = "Rauthy.bin";
 // {digits}     -> 6 (the default value)
 // {period}     -> 30 (the default value)
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
-pub enum Algorithm {
-    #[default]
-    SHA1,
-    SHA256,
-    SHA512,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Service {
     id: String,
     issuer: String,
     secret: String,
     name: String,
-    algorithm: Algorithm,
-    digits: u16,
-    period: isize
+    algorithm: totp_rs::Algorithm,
+    digits: usize,
+    period: u64
 }
 
 impl Default for Service {
@@ -56,7 +50,7 @@ impl Default for Service {
             issuer: String::from(""),
             secret: String::from(""),
             name: String::from(""),
-            algorithm: Algorithm::SHA1,
+            algorithm: totp_rs::Algorithm::SHA1,
             digits: 6,
             period: 30
         }
@@ -70,7 +64,7 @@ impl Service {
                 
                 match Self::try_from(uri) {
                     Ok(result) => Ok(result),
-                    Err(err) => Err(())
+                    Err(_) => Err(())
                 }
             }
             Err(_) => {
@@ -78,54 +72,72 @@ impl Service {
             }
         }
     }
+
 }
 
-impl TryFrom<Url> for Service {
-    type Error = &'static str;
+impl TryFrom<TOTP> for Service {
+    type Error = Error;
 
-    fn try_from(url: Url) -> Result<Self, Self::Error> {
+    fn try_from(totp: TOTP) -> Result<Self, Self::Error> {
+        if totp.account_name.len() == 0 {
+            return Err("Invalid TOTP instance");
+        }
         let mut service = Service::default();
-        
-        let path_parts: Vec<&str> = url.path().split(':').collect();
-        let mut issuer = path_parts[0];
-        if issuer.chars().nth(0) == Some('/') {
-            let mut issuer_chars = issuer.chars();
-            issuer_chars.next();
-            issuer = issuer_chars.as_str();
-        }
-        println!("Parts: {:?}", path_parts);
-        if path_parts.len() > 1 {
-            service.name = String::from(path_parts[1]);
-            service.issuer = String::from(issuer);
-        } else {
-            service.name = String::from(issuer);
-        }
+
+        service.name = totp.account_name.clone();
+        service.issuer = totp.issuer.clone().unwrap();
+
         service.id = service.issuer.clone();
         service.id.push_str(service.name.as_str());
 
-        let mut query = url.query_pairs();
-        if let Some((Cow::Borrowed(key), Cow::Borrowed(secret_key))) = query.next() {
-            if key == "secret" {
-                service.secret = String::from(secret_key);
-            }
-        }
+        service.secret = Secret::Raw(totp.secret.clone()).to_encoded().to_string();
 
-        
-
-        // TODO: capture period, digits and algorithm
+        service.algorithm = totp.algorithm;
+        service.digits = totp.digits;
+        service.period = totp.step;
 
         Ok(service)
     }
 }
 
+impl TryFrom<Url> for Service {
+    type Error = Error;
+
+    fn try_from(url: Url) -> Result<Self, Self::Error> {
+        match TOTP::from_url(url.as_str()) {
+            Ok(totp) => Service::try_from(totp),
+            Err(_) => Err("Couldn't create a service from this URL")
+        }
+    }
+}
+
 impl TryFrom<&str> for Service {
-    type Error = &'static str;
+    type Error = Error;
 
     fn try_from(url: &str) -> Result<Self, Self::Error> {
-        if let Ok(url) = Url::parse(url) {
-            return Service::try_from(url);
+        if let Ok(totp) = TOTP::from_url(url) {
+            return Service::try_from(totp);
         } else {
-            return Err("Couldn't parse the provided URL");
+            return Err("Couldn't parse the provided URL as a TOTP URL");
+        }
+    }
+}
+
+impl ServiceToken for Service {
+    fn current_totp(&self) -> Result<String, Error> {
+        let totp = TOTP::new(
+            self.algorithm, 
+            self.digits, 
+            1, 
+            self.period, 
+            Secret::Encoded(self.secret.clone()).to_bytes().unwrap(), 
+            Some(self.issuer.clone()),
+            self.name.clone()
+        ).unwrap();
+        
+        match totp.generate_current() {
+            Ok(token) => Ok(token),
+            Err(_) => Err("Couldn't generate a token based on the current time")
         }
     }
 }
@@ -201,7 +213,22 @@ impl Storage {
     pub fn services(&self) -> &ServiceMap {
         &self.services
     }
+
 }
+
+impl ServicesTokens for Storage {
+    fn services_tokens(&self) -> Result<HashMap<String, String>, ()> {
+        let mut tokens = std::collections::HashMap::new();
+        for (key, val) in self.services.iter() {
+            tokens.insert(key.clone(), val.current_totp().unwrap());
+        }
+        if tokens.len() == self.services.len() {
+            return Ok(tokens);
+        }
+        return Err(());
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -220,6 +247,8 @@ mod tests {
         storage.add_service(service.clone());
         assert_eq!(storage.services.len(), 1);
         assert!(storage.services.contains_key(&service.id));
+        // Clean up the created file
+        let _ = fs::remove_file(&storage.file_path);
     }
 
     #[test]
@@ -229,12 +258,16 @@ mod tests {
         storage.add_service(service.clone());
         assert!(storage.remove_service(service.id.clone()));
         assert!(!storage.services.contains_key(&service.id));
+        // Clean up the created file
+        let _ = fs::remove_file(&storage.file_path);
     }
 
     #[test]
     fn test_file_exists() {
         let storage = setup_storage();
         assert!(!storage.file_exists()); // Should be false since the file does not exist yet
+        // Clean up the created file
+        let _ = fs::remove_file(&storage.file_path);
     }
 
     #[test]
@@ -281,11 +314,12 @@ mod tests {
     #[test]
     fn test_service_from_url() {
         // otpauth://totp/csinfotest?secret=ZEH7IWIVJ7Q65KF7EQPEVDQ5JTATNNPM&issuer=Namecheap+-+PHX01BSB137
-        let url = "otpauth://totp/testIssuer:testName?secret=TESTSECRET";
+        //let url = "otpauth://totp/testIssuer:testName?secret=ZEH7IWIVJ7Q65KF7EQPEVDQ5JTATNNPM";
+        let url = "otpauth://totp/GitHub:constantoine@github.com?secret=KRSXG5CTMVRXEZLUKN2XAZLSKNSWG4TFOQ&issuer=GitHub";
         let service = Service::try_from(url).unwrap();
-        assert_eq!(service.issuer, "testIssuer");
-        assert_eq!(service.name, "testName");
-        assert_eq!(service.secret, "TESTSECRET");
+        assert_eq!(service.issuer, "GitHub");
+        assert_eq!(service.name, "constantoine@github.com");
+        assert_eq!(service.secret, "KRSXG5CTMVRXEZLUKN2XAZLSKNSWG4TFOQ");
     }
 
     #[test]

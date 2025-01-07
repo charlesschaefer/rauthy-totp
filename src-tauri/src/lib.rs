@@ -5,6 +5,7 @@ mod storage;
 mod crypto;
 mod state;
 mod commands;
+mod totp;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -20,7 +21,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::remove_service,
             commands::add_service,
-            commands::setup_storage_keys
+            commands::setup_storage_keys,
+            commands::get_services_tokens
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

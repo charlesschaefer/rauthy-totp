@@ -1,8 +1,10 @@
 use tauri::State;
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 use crate::crypto::*;
 use crate::storage::*;
+use crate::totp::*;
 use crate::state::AppState;
 
 
@@ -53,4 +55,13 @@ pub fn remove_service(app_state: State<'_, Mutex<AppState>>, service_id: String)
     let services = state.storage.services().clone();
 
     Ok(services)
+}
+
+#[tauri::command]
+pub fn get_services_tokens(app_state: State<'_, Mutex<AppState>>) -> Result<HashMap<String, String>, ()> {
+    let state = app_state.lock().unwrap();
+    match state.storage.services_tokens() {
+        Ok(tokens) => Ok(tokens),
+        Err(_) => Err(())
+    }
 }

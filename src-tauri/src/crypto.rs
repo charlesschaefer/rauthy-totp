@@ -69,8 +69,8 @@ pub fn encrypt_data(data: Vec<u8>, key: &[u8]) -> Result<Vec<u8>, Error> {
         msg: data.as_ref(),
         aad: b""
     }).unwrap(); // Encrypt the data using GCM
-    println!("Encrypted data: {:?}, Len: {:?}", encrypted_data, encrypted_data.len());
-    println!("Nonce: {:?}, Len: {:?}", nonce, nonce.len());
+    // println!("Encrypted data: {:?}, Len: {:?}", encrypted_data, encrypted_data.len());
+    // println!("Nonce: {:?}, Len: {:?}", nonce, nonce.len());
     Ok([nonce.to_vec(), encrypted_data].concat()) // Prepend nonce to the encrypted data
 }
 
@@ -92,18 +92,18 @@ pub fn encrypt_data(data: Vec<u8>, key: &[u8]) -> Result<Vec<u8>, Error> {
 /// 
 /// This function will panic if the decryption operation fails.
 pub fn decrypt_data(data: Vec<u8>, key: &[u8]) -> Result<Vec<u8>, Error> {
-    println!("Data to decrypt: {:?}, Len: {:?}", data, data.len());
+    // println!("Data to decrypt: {:?}, Len: {:?}", data, data.len());
     let data = data.split_at(12);
     let nonce = Nonce::from_slice(data.0);
     let encrypted_data = data.1; // Split the Nonce and encrypted data for GCM
-    println!("Data to decrypt: {:?}, Len: {:?}", encrypted_data, encrypted_data.len());
+    // println!("Data to decrypt: {:?}, Len: {:?}", encrypted_data, encrypted_data.len());
     
     let key = Key::<Aes256Gcm>::from_slice(key);
     let cipher = Aes256Gcm::new(key);
 
     match cipher.decrypt(&nonce, encrypted_data) { // Decrypt the data using GCM
         Ok(result) => Ok(result),
-        Err(err) => Err("Couldn't decrypt the text")
+        Err(_) => Err("Couldn't decrypt the text")
     }
 }
 
