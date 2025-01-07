@@ -1,10 +1,9 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::error::Error;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use std::fs::File;
-use std::io::{self, Write, Read};
+use std::io::{Write, Read};
 use bincode;
 
 use crate::crypto::*;

@@ -12,7 +12,7 @@ pub fn setup_storage_keys(app_state: State<'_, Mutex<AppState>>, user_pass: &str
     let mut storage = Storage::new(key.to_vec());
     if storage.file_exists() {
         match storage.read_from_file() {
-            Err(err) => return Err("Couldn't read the storage file"),
+            Err(_) => return Err("Couldn't decrypt the storage file"),
             Ok(_) => {}
         }
     }
@@ -34,6 +34,7 @@ pub fn add_service(app_state: State<'_, Mutex<AppState>>, totp_uri: &str) -> Res
         state.storage.save_to_file()?;
     
         let services = state.storage.services().clone();
+        println!("Services: {:?}", services);
     
         return Ok(services);
     } else {

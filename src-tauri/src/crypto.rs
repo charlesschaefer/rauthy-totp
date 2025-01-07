@@ -6,6 +6,7 @@ use ring::{pbkdf2, digest, rand::{SystemRandom, SecureRandom}};
 use std::{num::NonZeroU32};
 
 const CREDENTIAL_LEN: usize = digest::SHA256_OUTPUT_LEN;
+const SALT: &str = "E3D0C30656C194272C7B6AD2ED0B7F8078FF2921F777A142A045D45931BC2771";
 pub type KeyArray = [u8;CREDENTIAL_LEN];
 pub type Error = &'static str;
 
@@ -23,21 +24,20 @@ pub type Error = &'static str;
 /// 
 pub fn derive_key_from_password(user_pass: &str) -> Result<KeyArray, Error> {
     let n_iter = NonZeroU32::new(100_000).unwrap();
-    let rng = SystemRandom::new();
+    // let rng = SystemRandom::new();
 
-    let mut salt = [0u8; CREDENTIAL_LEN];
-    rng.fill(&mut salt);
+    let salt = &data_encoding::HEXUPPER.decode(SALT.as_bytes()).unwrap()[..CREDENTIAL_LEN];
 
     let mut pbkdf2_hash = [0u8; CREDENTIAL_LEN];
     pbkdf2::derive(
         pbkdf2::PBKDF2_HMAC_SHA256,
         n_iter,
-        &salt,
+        salt,
         user_pass.as_bytes(),
         &mut pbkdf2_hash,
     );
-    /* println!("Salt: {}", HEXUPPER.encode(&salt));
-    println!("PBKDF2 hash: {}", HEXUPPER.encode(&pbkdf2_hash)); */
+    /* println!("Salt: {}", data_encoding::HEXUPPER.encode(&salt));
+    println!("PBKDF2 hash: {}", data_encoding::HEXUPPER.encode(&pbkdf2_hash)); */
 
     Ok(pbkdf2_hash)
 }
@@ -69,6 +69,8 @@ pub fn encrypt_data(data: Vec<u8>, key: &[u8]) -> Result<Vec<u8>, Error> {
         msg: data.as_ref(),
         aad: b""
     }).unwrap(); // Encrypt the data using GCM
+    println!("Encrypted data: {:?}, Len: {:?}", encrypted_data, encrypted_data.len());
+    println!("Nonce: {:?}, Len: {:?}", nonce, nonce.len());
     Ok([nonce.to_vec(), encrypted_data].concat()) // Prepend nonce to the encrypted data
 }
 
