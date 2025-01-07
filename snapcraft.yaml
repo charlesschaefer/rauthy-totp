@@ -1,0 +1,94 @@
+name: rauthy
+base: core22
+architectures:
+  - build-on: [arm64]
+  - build-on: [amd64]
+version: '0.0.1'
+summary: An opensource TOTP app (like Authy, Google Authenticator, etc) created with Tauri (rust + typescript) # 79 char long summary
+license: GPL-3.0+
+
+grade: stable
+confinement: strict
+
+layout:
+  #/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1:
+  /usr/libexec/webkit2gtk-4.1:
+    symlink: $SNAP/usr/libexec/webkit2gtk-4.1
+  /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1:
+    symlink: $SNAP/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1
+  /usr/lib/aarch64-linux-gnu/webkit2gtk-4.1:
+    symlink: $SNAP/usr/lib/aarch64-linux-gnu/webkit2gtk-4.1
+  /usr/lib/webkit2gtk-4.1/injected-bundle:
+    symlink: $SNAP/usr/lib/webkit2gtk-4.1/injected-bundle
+
+apps:
+  rauthy:
+    # architectures:
+    #   - arm64
+    #   - amd64
+    #   - build-on: [arm64]
+    #     build-for: [armhf]
+    # platforms:
+    #   amd64:
+    #   arm64:
+    extensions:
+     - gnome
+    command: usr/bin/rauthy
+    desktop: usr/share/applications/rauthy.desktop
+    plugs: 
+      - wayland
+      - x11
+      - home
+      - desktop
+      - unity7
+      - network
+      - network-bind
+      - network-status
+
+package-repositories:
+  - type: apt
+    components: [main]
+    suites: [noble]
+    key-id: 78E1918602959B9C59103100F1831DDAFC42E99D
+    url: http://ppa.launchpad.net/snappy-dev/snapcraft-daily/ubuntu
+
+
+parts:
+  build-app:
+    plugin: dump
+    build-snaps:
+      - node/20/stable
+      - rustup/latest/stable
+    build-packages:
+      - libwebkit2gtk-4.1-dev
+      - build-essential
+      - curl
+      - wget
+      - file
+      - libxdo-dev
+      - libssl-dev
+      - libayatana-appindicator3-dev
+      - librsvg2-dev
+      - dpkg
+    stage-packages:
+      - libwebkit2gtk-4.1-0
+      - libayatana-appindicator3-1
+      - libglu1-mesa
+      - freeglut3
+    source: .
+    override-build: |
+      set -eu
+      rustup default stable
+      npm clean-install --include prod --include dev --include peer
+      npm install --save-dev @tauri-apps/cli @tauri-apps/api rollup
+      npm run tauri build -- --bundles deb
+      dpkg -x src-tauri/target/release/bundle/deb/*.deb $SNAPCRAFT_PART_INSTALL/
+      if [ -d $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/32x32/apps ]; then
+        sed -i -e "s|Icon=rauthy|Icon=/usr/share/icons/hicolor/32x32/apps/rauthy.png|g" $SNAPCRAFT_PART_INSTALL/usr/share/applications/Rauthy.desktop
+      fi
+      cp $SNAPCRAFT_PART_INSTALL/usr/share/applications/Rauthy.desktop $SNAPCRAFT_PART_INSTALL/usr/share/applications/rauthy.desktop
+slots:
+  dbus-daemon:
+    interface: dbus
+    bus: session
+    name: com.fairetodoapp
