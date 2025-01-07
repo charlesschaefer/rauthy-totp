@@ -124,7 +124,7 @@ impl TryFrom<&str> for Service {
 }
 
 impl ServiceToken for Service {
-    fn current_totp(&self) -> Result<String, Error> {
+    fn current_totp(&self) -> Result<TotpToken, Error> {
         let totp = TOTP::new(
             self.algorithm, 
             self.digits, 
@@ -136,7 +136,10 @@ impl ServiceToken for Service {
         ).unwrap();
         
         match totp.generate_current() {
-            Ok(token) => Ok(token),
+            Ok(token) => Ok(TotpToken {
+                token,
+                next_step_time: totp.next_step_current().unwrap()
+            }),
             Err(_) => Err("Couldn't generate a token based on the current time")
         }
     }
@@ -217,7 +220,7 @@ impl Storage {
 }
 
 impl ServicesTokens for Storage {
-    fn services_tokens(&self) -> Result<HashMap<String, String>, ()> {
+    fn services_tokens(&self) -> Result<HashMap<String, TotpToken>, ()> {
         let mut tokens = std::collections::HashMap::new();
         for (key, val) in self.services.iter() {
             tokens.insert(key.clone(), val.current_totp().unwrap());

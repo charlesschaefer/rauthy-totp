@@ -58,7 +58,7 @@ pub fn remove_service(app_state: State<'_, Mutex<AppState>>, service_id: String)
 }
 
 #[tauri::command]
-pub fn get_services_tokens(app_state: State<'_, Mutex<AppState>>) -> Result<HashMap<String, String>, ()> {
+pub fn get_services_tokens(app_state: State<'_, Mutex<AppState>>) -> Result<HashMap<String, TotpToken>, ()> {
     let state = app_state.lock().unwrap();
     match state.storage.services_tokens() {
         Ok(tokens) => Ok(tokens),

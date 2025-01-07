@@ -22,7 +22,20 @@
         <li *ngFor="let service of totpItems | keyvalue">
           {{ service.value.name }} ({{ service.value.issuer }})
           @if (tokensMap.has(service.value.id)) {
-            <strong><pre>{{ tokensMap.get(service.value.id) }}</pre></strong>
+            @let token = tokensMap.get(service.value.id);
+            <strong>
+              {{ token?.token }} 
+              @if (tokensDuration.has(service.value.id)) {
+                (Valid during: 
+                  @let time = tokensDuration.get(service.value.id);
+                  @if (time && time > 0) {
+                    {{ time }} seconds
+                  } @else {
+                    {{"invalid" | transloco}}
+                  }
+                )
+            }
+            </strong>
           }
         </li>
       </ul>

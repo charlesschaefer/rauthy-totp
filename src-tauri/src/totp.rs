@@ -1,11 +1,19 @@
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+
 
 type Error = &'static str;
 
 pub trait ServiceToken {
-    fn current_totp(&self) -> Result<String, Error>;
+    fn current_totp(&self) -> Result<TotpToken, Error>;
 }
 
 pub trait ServicesTokens {
-    fn services_tokens(&self) -> Result<HashMap<String, String>, ()>;
+    fn services_tokens(&self) -> Result<HashMap<String, TotpToken>, ()>;
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct TotpToken {
+    pub token: String,
+    pub next_step_time: u64
 }

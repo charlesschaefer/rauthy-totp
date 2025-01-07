@@ -9,9 +9,12 @@ import { scan, Format } from '@tauri-apps/plugin-barcode-scanner';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
 import { CommonModule } from '@angular/common';
+import { interval } from 'rxjs';
+import { DateTime } from 'luxon';
 
 import { TotpService } from '../services/totp.service';
 import { Service } from '../models/service.model';
+import { TotpToken } from '../models/token.model';
 
 @Component({
     selector: 'app-main',
@@ -39,7 +42,8 @@ export class MainComponent {
     });
 
     totpItems = new Map<string, Service>();
-    tokensMap = new Map<string, string>();
+    tokensMap = new Map<string, TotpToken>();
+    tokensDuration = new Map<string, number>();
 
     showDialog = signal(false);
     showURLInput = signal(false);
@@ -118,6 +122,15 @@ export class MainComponent {
     }
 
     showTokens() {
-        this.totpService.getServicesTokens().subscribe(tokensMap => this.tokensMap = tokensMap);
+        this.totpService.getServicesTokens().subscribe(tokensMap => {
+            this.tokensMap = tokensMap
+            interval(1000).subscribe(() => {
+                this.tokensMap.forEach((token, key) => {
+                    this.tokensDuration.set(key, 
+                        Math.round(DateTime.fromJSDate(token.nextStepTime).diffNow('seconds').as('seconds'))
+                    );
+                })
+            })
+        });
     }
 } 
