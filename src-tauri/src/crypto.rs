@@ -3,10 +3,11 @@ use aes_gcm::{
 };
 
 use ring::{pbkdf2, digest, rand::{SystemRandom, SecureRandom}};
-use std::num::NonZeroU32;
+use std::{num::NonZeroU32};
 
 const CREDENTIAL_LEN: usize = digest::SHA256_OUTPUT_LEN;
-type KeyArray = [u8;CREDENTIAL_LEN];
+pub type KeyArray = [u8;CREDENTIAL_LEN];
+pub type Error = &'static str;
 
 /// Derives a key from a password using PBKDF2 with HMAC-SHA512.
 /// 
@@ -20,7 +21,7 @@ type KeyArray = [u8;CREDENTIAL_LEN];
 /// let user_pass = "password";
 /// let key = derive_key_from_password(user_pass).unwrap();
 /// 
-pub fn derive_key_from_password(user_pass: &str) -> Result<KeyArray, ()> {
+pub fn derive_key_from_password(user_pass: &str) -> Result<KeyArray, Error> {
     let n_iter = NonZeroU32::new(100_000).unwrap();
     let rng = SystemRandom::new();
 
@@ -59,7 +60,7 @@ pub fn derive_key_from_password(user_pass: &str) -> Result<KeyArray, ()> {
 /// # Errors
 /// 
 /// This function will panic if the encryption operation fails.
-pub fn encrypt_data(data: Vec<u8>, key: &[u8]) -> Vec<u8> {
+pub fn encrypt_data(data: Vec<u8>, key: &[u8]) -> Result<Vec<u8>, Error> {
     let key = Key::<Aes256Gcm>::from_slice(key);
     let cipher = Aes256Gcm::new(&key);
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
@@ -68,7 +69,7 @@ pub fn encrypt_data(data: Vec<u8>, key: &[u8]) -> Vec<u8> {
         msg: data.as_ref(),
         aad: b""
     }).unwrap(); // Encrypt the data using GCM
-    [nonce.to_vec(), encrypted_data].concat() // Prepend nonce to the encrypted data
+    Ok([nonce.to_vec(), encrypted_data].concat()) // Prepend nonce to the encrypted data
 }
 
 /// Decrypts the given data using AES-256-GCM with the provided key.
@@ -88,16 +89,20 @@ pub fn encrypt_data(data: Vec<u8>, key: &[u8]) -> Vec<u8> {
 /// # Errors
 /// 
 /// This function will panic if the decryption operation fails.
-pub fn decrypt_data(data: Vec<u8>, key: &[u8]) -> Vec<u8> {
+pub fn decrypt_data(data: Vec<u8>, key: &[u8]) -> Result<Vec<u8>, Error> {
     println!("Data to decrypt: {:?}, Len: {:?}", data, data.len());
     let data = data.split_at(12);
     let nonce = Nonce::from_slice(data.0);
     let encrypted_data = data.1; // Split the Nonce and encrypted data for GCM
+    println!("Data to decrypt: {:?}, Len: {:?}", encrypted_data, encrypted_data.len());
     
     let key = Key::<Aes256Gcm>::from_slice(key);
     let cipher = Aes256Gcm::new(key);
 
-    cipher.decrypt(&nonce, encrypted_data).unwrap() // Decrypt the data using GCM
+    match cipher.decrypt(&nonce, encrypted_data) { // Decrypt the data using GCM
+        Ok(result) => Ok(result),
+        Err(err) => Err("Couldn't decrypt the text")
+    }
 }
 
 #[cfg(test)]
@@ -118,8 +123,8 @@ mod tests {
         let user_pass = "test_password";
         let key = derive_key_from_password(user_pass).unwrap();
 
-        let encrypted_data = encrypt_data(data.clone(), &key);
-        let decrypted_data = decrypt_data(encrypted_data.clone(), &key);
+        let encrypted_data = encrypt_data(data.clone(), &key).unwrap();
+        let decrypted_data = decrypt_data(encrypted_data.clone(), &key).unwrap();
 
         assert_eq!(data, decrypted_data);
     }
@@ -130,7 +135,7 @@ mod tests {
         let user_pass = "test_password";
         let key = derive_key_from_password(user_pass).unwrap();
 
-        let encrypted_data = encrypt_data(data.clone(), &key);
+        let encrypted_data = encrypt_data(data.clone(), &key).unwrap();
         assert!(encrypted_data.len() > data.len()); // Encrypted data should be longer than original
     }
 }

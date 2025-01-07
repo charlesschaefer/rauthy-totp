@@ -1,15 +1,13 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::error::Error;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use std::fs::File;
 use std::io::{self, Write, Read};
 use bincode;
-use tauri::State;
 
 use crate::crypto::*;
-use crate::state::AppState;
 
 
 const STORAGE_FILE: &str = "Rauthy.bin";
@@ -71,7 +69,10 @@ impl Service {
         match Url::parse(parsable_uri) {
             Ok(uri) => {
                 
-                Ok(Self::from(uri))
+                match Self::try_from(uri) {
+                    Ok(result) => Ok(result),
+                    Err(err) => Err(())
+                }
             }
             Err(_) => {
                 Err(())
@@ -80,8 +81,10 @@ impl Service {
     }
 }
 
-impl From<Url> for Service {
-    fn from(url: Url) -> Self {
+impl TryFrom<Url> for Service {
+    type Error = &'static str;
+
+    fn try_from(url: Url) -> Result<Self, Self::Error> {
         let mut service = Service::default();
         
         let path_parts: Vec<&str> = url.path().split(':').collect();
@@ -112,13 +115,19 @@ impl From<Url> for Service {
 
         // TODO: capture period, digits and algorithm
 
-        service
+        Ok(service)
     }
 }
 
-impl From<&str> for Service {
-    fn from(url: &str) -> Self {
-        Service::from(Url::parse(url).unwrap())
+impl TryFrom<&str> for Service {
+    type Error = &'static str;
+
+    fn try_from(url: &str) -> Result<Self, Self::Error> {
+        if let Ok(url) = Url::parse(url) {
+            return Service::try_from(url);
+        } else {
+            return Err("Couldn't parse the provided URL");
+        }
     }
 }
 
@@ -151,25 +160,32 @@ impl Storage {
         std::fs::exists(self.file_path.to_string()).unwrap()
     }
 
-    pub fn save_to_file(&self) -> Result<(), io::Error> {
+    pub fn save_to_file(&self) -> Result<(), ()> {
         let serialized_services = bincode::serialize(&self.services).unwrap(); // Serialize the services
         let key = self.signing_key.clone();
-        let encrypted_data = encrypt_data(serialized_services, key.as_slice()); // Encrypt the serialized data
-
-        let mut file = File::create(&self.file_path)?; // Create or open the file
-        file.write_all(&encrypted_data)?; // Write the encrypted data to the file
-        Ok(())
+        match encrypt_data(serialized_services, key.as_slice()) { // Encrypt the serialized data
+            Ok(encrypted_data) => {
+                let mut file = File::create(&self.file_path).unwrap(); // Create or open the file
+                file.write_all(&encrypted_data).unwrap_or_default(); // Write the encrypted data to the file
+                Ok(())
+            },
+            Err(_) => Err(())
+        }
     }
 
-    pub fn read_from_file(&mut self) -> Result<(), io::Error> {
-        let mut file = File::open(&self.file_path)?; // Open the file
+    pub fn read_from_file(&mut self) -> Result<(), ()> {
+        let mut file = File::open(&self.file_path).unwrap(); // Open the file
         let mut encrypted_data = Vec::new();
-        file.read_to_end(&mut encrypted_data)?; // Read the encrypted data
+        file.read_to_end(&mut encrypted_data).unwrap_or_default(); // Read the encrypted data
 
         let key = self.signing_key.clone();
-        let decrypted_data = decrypt_data(encrypted_data, key.as_slice()); // Decrypt the data
-        self.services = bincode::deserialize(&decrypted_data).unwrap(); // Deserialize into services
-        Ok(())
+        match decrypt_data(encrypted_data, key.as_slice()) { // Decrypt the data
+            Ok(decrypted_data) => {
+                self.services = bincode::deserialize(&decrypted_data).unwrap();
+                return Ok(());
+            },
+            Err(_) => Err(())
+        }
     }
 
     pub fn add_service(&mut self, service: Service) {
@@ -267,7 +283,7 @@ mod tests {
     fn test_service_from_url() {
         // otpauth://totp/csinfotest?secret=ZEH7IWIVJ7Q65KF7EQPEVDQ5JTATNNPM&issuer=Namecheap+-+PHX01BSB137
         let url = "otpauth://totp/testIssuer:testName?secret=TESTSECRET";
-        let service = Service::from(url);
+        let service = Service::try_from(url).unwrap();
         assert_eq!(service.issuer, "testIssuer");
         assert_eq!(service.name, "testName");
         assert_eq!(service.secret, "TESTSECRET");

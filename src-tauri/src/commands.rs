@@ -1,5 +1,4 @@
 use tauri::State;
-use std::collections::HashMap;
 use std::sync::Mutex;
 
 use crate::crypto::*;
@@ -8,38 +7,49 @@ use crate::state::AppState;
 
 
 #[tauri::command]
-pub fn setup_storage_keys(app_state: State<'_, Mutex<AppState>>, user_pass: &str) -> ServiceMap {
-    let key = derive_key_from_password(user_pass).unwrap();
+pub fn setup_storage_keys(app_state: State<'_, Mutex<AppState>>, user_pass: &str) -> Result<ServiceMap, Error> {
+    let key = derive_key_from_password(user_pass)?;
     let mut storage = Storage::new(key.to_vec());
     if storage.file_exists() {
-        storage.read_from_file().unwrap();
+        match storage.read_from_file() {
+            Err(err) => return Err("Couldn't read the storage file"),
+            Ok(_) => {}
+        }
     }
 
     let mut state = app_state.lock().unwrap();
     state.storage = storage;
     
     let services = state.storage.services().clone();
-
-    services
+    println!("Services: {:?}", services);
+    Ok(services)
 }
 
 #[tauri::command]
-pub fn add_service(app_state: State<'_, Mutex<AppState>>, totp_uri: &str) -> ServiceMap {
+pub fn add_service(app_state: State<'_, Mutex<AppState>>, totp_uri: &str) -> Result<ServiceMap, ()> {
     let mut state = app_state.lock().unwrap();
 
-    state.storage.add_service(Service::from(totp_uri));
-
-    let services = state.storage.services().clone();
-
-    services
+    if let Ok(service) = Service::try_from(totp_uri) {
+        state.storage.add_service(service);
+        state.storage.save_to_file()?;
+    
+        let services = state.storage.services().clone();
+    
+        return Ok(services);
+    } else {
+        println!("Couldn't create a service from the url");
+        return Ok(std::collections::HashMap::new());
+    }
 }
 
 #[tauri::command]
-pub fn remove_service(app_state: State<'_, Mutex<AppState>>, service_id: String) -> ServiceMap {
+pub fn remove_service(app_state: State<'_, Mutex<AppState>>, service_id: String) -> Result<ServiceMap, ()> {
     let mut state = app_state.lock().unwrap();
+    
     state.storage.remove_service(service_id);
+    state.storage.save_to_file()?;
 
     let services = state.storage.services().clone();
 
-    services
+    Ok(services)
 }
