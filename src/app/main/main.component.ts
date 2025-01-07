@@ -39,6 +39,8 @@ export class MainComponent {
     });
 
     totpItems = new Map<string, Service>();
+    tokensMap = new Map<string, string>();
+
     showDialog = signal(false);
     showURLInput = signal(false);
 
@@ -113,5 +115,9 @@ export class MainComponent {
             }
             subscription.unsubscribe();
         });
+    }
+
+    showTokens() {
+        this.totpService.getServicesTokens().subscribe(tokensMap => this.tokensMap = tokensMap);
     }
 } 

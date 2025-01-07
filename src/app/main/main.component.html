@@ -19,7 +19,12 @@
     <div>
       <h2>{{"Available Services" | transloco}}</h2>
       <ul>
-        <li *ngFor="let service of totpItems | keyvalue">{{ service.value.name }} ({{ service.value.issuer }})</li>
+        <li *ngFor="let service of totpItems | keyvalue">
+          {{ service.value.name }} ({{ service.value.issuer }})
+          @if (tokensMap.has(service.value.id)) {
+            <strong><pre>{{ tokensMap.get(service.value.id) }}</pre></strong>
+          }
+        </li>
       </ul>
     </div>
     }
@@ -48,5 +53,6 @@
 
     </p-dialog>
   </div>
+  <p-button severity="help" (onClick)="showTokens()">{{"Show Tokens" | transloco }}</p-button>
 </main>
 <p-toast position="bottom-left" />
