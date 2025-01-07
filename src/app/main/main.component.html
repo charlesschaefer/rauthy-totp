@@ -2,7 +2,7 @@
   <h1>{{"Welcome to TOTP Manager" | transloco}}</h1>
 
   <div>
-    @if (!totpItems().size) {
+    @if (!totpItems.size) {
     <form [formGroup]="form" (ngSubmit)="onSubmit()">
       <div>
         <input formControlName="password" type="password" [placeholder]="'Enter password' | transloco" />
@@ -15,12 +15,14 @@
       <p>{{"No services found!" | transloco}}</p>
     </div>
 
-    <div *ngIf="totpItems().size > 0">
+    @if (totpItems.size > 0) {
+    <div>
       <h2>{{"Available Services" | transloco}}</h2>
       <ul>
-        <li *ngFor="let service of totpItems().values()">{{ service.name }} ({{ service.issuer }})</li>
+        <li *ngFor="let service of totpItems | keyvalue">{{ service.value.name }} ({{ service.value.issuer }})</li>
       </ul>
     </div>
+    }
 
     <p-dialog [(visible)]="showDialog" header="Add Service" [modal]="true">
       <p>

@@ -19,6 +19,8 @@ export class TotpService {
         invoke<object>('setup_storage_keys', { userPass: password }).then(services => {
             this.setupServices(services);
             this.services.next(this.servicesContent);
+        }).catch(error => {
+            this.services.error(error);
         });
         return this.services.asObservable();
     }
@@ -27,6 +29,8 @@ export class TotpService {
         invoke<object>('add_service', { totpUri }).then(services => {
             this.setupServices(services);
             this.services.next(this.servicesContent);
+        }).catch(error => {
+            this.services.error(error);
         });
         return this.services.asObservable();
     }
@@ -35,6 +39,8 @@ export class TotpService {
         invoke<object>('remove_service', { serviceId }).then(services => {
             this.setupServices(services);
             this.services.next(this.servicesContent);
+        }).catch(error => {
+            this.services.error(error);
         });
         return this.services.asObservable();
     }

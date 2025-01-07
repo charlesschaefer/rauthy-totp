@@ -38,7 +38,7 @@ export class MainComponent {
         serviceUrl: ['', Validators.required],
     });
 
-    totpItems = signal<Map<string, Service>>(new Map<string, Service>());
+    totpItems = new Map<string, Service>();
     showDialog = signal(false);
     showURLInput = signal(false);
 
@@ -50,10 +50,21 @@ export class MainComponent {
 
     async onSubmit() {
         if (this.form.valid) {
-            this.totpService.setupStorageKeys(this.form.value.password as string).subscribe(services => {
-                this.totpItems.set(services);
-                if (services.size === 0) {
-                    this.showDialog.set(true);
+            const subscription = this.totpService.setupStorageKeys(this.form.value.password as string).subscribe({
+                next: services => {
+                    subscription.unsubscribe();
+                    this.totpItems = services;
+                    if (services.size === 0) {
+                        this.showDialog.set(true);
+                    }
+                },
+                error: error => {
+                    subscription.unsubscribe();
+                    this.messageService.add({
+                        summary: this.translate.translate("Error trying to open the services file"),
+                        detail: this.translate.translate("Couldn't open the services file: ") + error,
+                        severity: 'error',
+                    })
                 }
             })
         }
@@ -82,8 +93,8 @@ export class MainComponent {
 
     addNewService(url: string) {
         const subscription = this.totpService.addService(url).subscribe(services => {
-            const oldItemsCount = this.totpItems().size;
-            this.totpItems.set(services);
+            const oldItemsCount = this.totpItems.size;
+            this.totpItems = services;
             if (services.size <= oldItemsCount) {
                 this.showDialog.set(true);
                 this.messageService.add({
