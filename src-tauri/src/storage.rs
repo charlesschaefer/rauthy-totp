@@ -67,7 +67,7 @@ impl Default for Service {
 }
 
 impl Service {
-    pub fn new(&self, parsable_uri: &str) -> Result<Self, ()> {
+    pub fn new(parsable_uri: &str) -> Result<Self, ()> {
         match Url::parse(parsable_uri) {
             Ok(uri) => {
                 
