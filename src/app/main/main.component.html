@@ -1,4 +1,4 @@
-<main class="container">
+<main class="container ">
   <h1>{{"Welcome to TOTP Manager" | transloco}}</h1>
 
   <div>
@@ -28,9 +28,9 @@
       </p>
       @if (!showURLInput()) {
         <div class="flex">
-          <p-button icon="pi pi-qrcode" severity="info" variant="text" [raised]="true"
+          <p-button severity="info" variant="text" [raised]="true"
             (onClick)="scanQRCode($event)">{{"Scan QRCode" | transloco}}</p-button>
-          <p-button icon="pi pi-clipboard" severity="help" variant="text" [raised]="true"
+          <p-button severity="help" variant="text" [raised]="true"
             (onClick)="showURLInput.set(true)">{{"Paste URL" | transloco}}</p-button>
         </div>
       } @else {

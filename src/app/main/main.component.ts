@@ -16,7 +16,7 @@ import { Service } from '../models/service.model';
 @Component({
     selector: 'app-main',
     templateUrl: './main.component.html',
-    styleUrls: ['./main.component.css'],
+    styleUrls: ['./main.component.scss'],
     imports: [
         CommonModule,
         ReactiveFormsModule,
@@ -27,8 +27,7 @@ import { Service } from '../models/service.model';
         InputTextModule,
         TranslocoModule,
         ToastModule
-    ],
-    providers: [MessageService]
+    ]
 })
 export class MainComponent {
     private fb = inject(FormBuilder);
