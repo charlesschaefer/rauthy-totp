@@ -5,6 +5,8 @@ architectures:
   - build-on: [amd64]
 version: '0.0.1'
 summary: An opensource TOTP app (like Authy, Google Authenticator, etc) made with Tauri # 79 char long summary
+description: |
+  Rauthy is an opensource TOTP app (like Authy, Google Authenticator, etc) made with Tauri (Rust and Typescript)
 license: GPL-3.0+
 
 grade: stable
