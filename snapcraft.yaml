@@ -4,7 +4,7 @@ architectures:
   - build-on: [arm64]
   - build-on: [amd64]
 version: '0.0.1'
-summary: An opensource TOTP app (like Authy, Google Authenticator, etc) created with Tauri (rust + typescript) # 79 char long summary
+summary: An opensource TOTP app (like Authy, Google Authenticator, etc) made with Tauri # 79 char long summary
 license: GPL-3.0+
 
 grade: stable
