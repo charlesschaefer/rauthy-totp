@@ -8,6 +8,14 @@
     "main"
   ],
   "permissions": [
-    "barcode-scanner:default"
+    "barcode-scanner:default",
+    {
+        "identifier": "fs:scope",
+        "allow": [
+            {
+                "path": "$APPLOCALDATA/Rauthy.bin"
+            }
+        ]
+    }
   ]
 }

@@ -1,14 +1,14 @@
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use url::Url;
-use std::fs::File;
-use std::io::{Write, Read};
 use bincode;
-use totp_rs::{TOTP, Secret, Algorithm};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::str::FromStr;
+use totp_rs::{Algorithm, Secret, TOTP};
+use url::Url;
 
 use crate::crypto::*;
 use crate::totp::*;
-
 
 const STORAGE_FILE: &str = "Rauthy.bin";
 type Error = &'static str;
@@ -22,7 +22,7 @@ type Error = &'static str;
 // {algorithm} -> sha1, sha256 or sha512
 // {digits}    -> 6 or 8. The number of characters (digits) the generated OTP code must have
 // {period}    -> The number of seconds during which the OTP code will be valid. DEFAULT: 30, but it can be any valid integer value.
-// 
+//
 
 // otpauth://totp/csinfotest?secret=ZEH7IWIVJ7Q65KF7EQPEVDQ5JTATNNPM&issuer=Namecheap+-+PHX01BSB137, results in:
 // {issuer}     -> csinforest first, then Namecheap+-+PHX01BSB137
@@ -38,9 +38,9 @@ pub struct Service {
     issuer: String,
     secret: String,
     name: String,
-    algorithm: totp_rs::Algorithm,
+    algorithm: Algorithm,
     digits: usize,
-    period: u64
+    period: u64,
 }
 
 impl Default for Service {
@@ -50,9 +50,9 @@ impl Default for Service {
             issuer: String::from(""),
             secret: String::from(""),
             name: String::from(""),
-            algorithm: totp_rs::Algorithm::SHA1,
+            algorithm: Algorithm::SHA1,
             digits: 6,
-            period: 30
+            period: 30,
         }
     }
 }
@@ -60,19 +60,13 @@ impl Default for Service {
 impl Service {
     pub fn new(parsable_uri: &str) -> Result<Self, ()> {
         match Url::parse(parsable_uri) {
-            Ok(uri) => {
-                
-                match Self::try_from(uri) {
-                    Ok(result) => Ok(result),
-                    Err(_) => Err(())
-                }
-            }
-            Err(_) => {
-                Err(())
-            }
+            Ok(uri) => match Self::try_from(uri) {
+                Ok(result) => Ok(result),
+                Err(_) => Err(()),
+            },
+            Err(_) => Err(()),
         }
     }
-
 }
 
 impl TryFrom<TOTP> for Service {
@@ -106,7 +100,7 @@ impl TryFrom<Url> for Service {
     fn try_from(url: Url) -> Result<Self, Self::Error> {
         match TOTP::from_url(url.as_str()) {
             Ok(totp) => Service::try_from(totp),
-            Err(_) => Err("Couldn't create a service from this URL")
+            Err(_) => Err("Couldn't create a service from this URL"),
         }
     }
 }
@@ -126,21 +120,22 @@ impl TryFrom<&str> for Service {
 impl ServiceToken for Service {
     fn current_totp(&self) -> Result<TotpToken, Error> {
         let totp = TOTP::new(
-            self.algorithm, 
-            self.digits, 
-            1, 
-            self.period, 
-            Secret::Encoded(self.secret.clone()).to_bytes().unwrap(), 
+            self.algorithm,
+            self.digits,
+            1,
+            self.period,
+            Secret::Encoded(self.secret.clone()).to_bytes().unwrap(),
             Some(self.issuer.clone()),
-            self.name.clone()
-        ).unwrap();
-        
+            self.name.clone(),
+        )
+        .unwrap();
+
         match totp.generate_current() {
             Ok(token) => Ok(TotpToken {
                 token,
-                next_step_time: totp.next_step_current().unwrap()
+                next_step_time: totp.next_step_current().unwrap(),
             }),
-            Err(_) => Err("Couldn't generate a token based on the current time")
+            Err(_) => Err("Couldn't generate a token based on the current time"),
         }
     }
 }
@@ -159,31 +154,36 @@ impl Storage {
         if key.len() == 0 {
             panic!("Key for data storing can't be empty");
         }
+
+        // let mut file_path = std::env::current_dir().unwrap();
+        // file_path.push(STORAGE_FILE);
+        let file_path = tauri_plugin_fs::FilePath::from_str("$APPLOCALDATA").unwrap().as_path().unwrap().join(STORAGE_FILE);
         
-        let mut file_path = std::env::current_dir().unwrap();
-        file_path.push(STORAGE_FILE);
+        let file_path_str = file_path.to_string_lossy().to_string();
 
         Self {
             services: HashMap::new(),
             signing_key: key,
-            file_path: String::from(file_path.to_str().unwrap())
+            file_path: file_path_str,
         }
     }
 
     pub fn file_exists(&self) -> bool {
-        std::fs::exists(self.file_path.to_string()).unwrap()
+        std::fs::exists(self.file_path.clone()).unwrap()
     }
 
     pub fn save_to_file(&self) -> Result<(), ()> {
         let serialized_services = bincode::serialize(&self.services).unwrap(); // Serialize the services
         let key = self.signing_key.clone();
-        match encrypt_data(serialized_services, key.as_slice()) { // Encrypt the serialized data
+        match encrypt_data(serialized_services, key.as_slice()) {
+            // Encrypt the serialized data
             Ok(encrypted_data) => {
+                dbg!("Trying to write to file: {:?}", &self.file_path);
                 let mut file = File::create(&self.file_path).unwrap(); // Create or open the file
                 file.write_all(&encrypted_data).unwrap_or_default(); // Write the encrypted data to the file
                 Ok(())
-            },
-            Err(_) => Err(())
+            }
+            Err(_) => Err(()),
         }
     }
 
@@ -193,12 +193,13 @@ impl Storage {
         file.read_to_end(&mut encrypted_data).unwrap_or_default(); // Read the encrypted data
 
         let key = self.signing_key.clone();
-        match decrypt_data(encrypted_data, key.as_slice()) { // Decrypt the data
+        match decrypt_data(encrypted_data, key.as_slice()) {
+            // Decrypt the data
             Ok(decrypted_data) => {
                 self.services = bincode::deserialize(&decrypted_data).unwrap();
                 return Ok(());
-            },
-            Err(_) => Err(())
+            }
+            Err(_) => Err(()),
         }
     }
 
@@ -209,7 +210,7 @@ impl Storage {
     pub fn remove_service(&mut self, id: String) -> bool {
         if let Some(_) = self.services.remove(&id) {
             return true;
-        } 
+        }
         return false;
     }
 
@@ -217,6 +218,10 @@ impl Storage {
         &self.services
     }
 
+    pub fn set_base_path(&mut self, path: std::path::PathBuf) {
+        self.file_path = String::from(path.join(STORAGE_FILE).to_str().unwrap());
+        dbg!("Setted the file path: {:?}", &self.file_path);
+    }
 }
 
 impl ServicesTokens for Storage {
@@ -231,7 +236,6 @@ impl ServicesTokens for Storage {
         return Err(());
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -269,7 +273,7 @@ mod tests {
     fn test_file_exists() {
         let storage = setup_storage();
         assert!(!storage.file_exists()); // Should be false since the file does not exist yet
-        // Clean up the created file
+                                         // Clean up the created file
         let _ = fs::remove_file(&storage.file_path);
     }
 
@@ -281,7 +285,10 @@ mod tests {
         let result = storage.save_to_file();
         assert!(result.is_ok());
         println!("Path of file saved: {:?}", storage.file_path);
-        println!("File exists: {}", std::fs::exists(storage.file_path.to_string()).unwrap());
+        println!(
+            "File exists: {}",
+            std::fs::exists(storage.file_path.to_string()).unwrap()
+        );
 
         // Check if the file exists after saving
         assert!(storage.file_exists());
@@ -301,8 +308,11 @@ mod tests {
 
         let mut new_storage = setup_storage();
         println!("Path of file to test: {:?}", new_storage.file_path);
-        println!("File exists: {}", std::fs::exists(new_storage.file_path.to_string()).unwrap());
-        
+        println!(
+            "File exists: {}",
+            std::fs::exists(new_storage.file_path.to_string()).unwrap()
+        );
+
         // Check if the file exists after saving
         assert!(new_storage.file_exists());
 

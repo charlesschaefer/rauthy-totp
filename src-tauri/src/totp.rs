@@ -1,6 +1,5 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-
+use std::collections::HashMap;
 
 type Error = &'static str;
 
@@ -15,5 +14,5 @@ pub trait ServicesTokens {
 #[derive(Serialize, Deserialize)]
 pub struct TotpToken {
     pub token: String,
-    pub next_step_time: u64
+    pub next_step_time: u64,
 }
