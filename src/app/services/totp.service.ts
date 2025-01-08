@@ -25,6 +25,8 @@ export class TotpService {
             this.services.next(this.servicesContent);
         }).catch(error => {
             this.services.error(error);
+            this.services.complete();
+            this.services = new Subject<typeof this.servicesContent>();
         });
         return this.services.asObservable();
     }
@@ -35,6 +37,8 @@ export class TotpService {
             this.services.next(this.servicesContent);
         }).catch(error => {
             this.services.error(error);
+            this.services.complete();
+            this.services = new Subject<typeof this.servicesContent>();
         });
         return this.services.asObservable();
     }
@@ -45,6 +49,8 @@ export class TotpService {
             this.services.next(this.servicesContent);
         }).catch(error => {
             this.services.error(error);
+            this.services.complete();
+            this.services = new Subject<typeof this.servicesContent>();
         });
         return this.services.asObservable();
     }

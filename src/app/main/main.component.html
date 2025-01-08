@@ -26,9 +26,9 @@
       <mat-list>
         <mat-list-item *ngFor="let service of totpItems | keyvalue">
           <div class="flex gap-3 justify-content-around service-item">
-            <span class="flex align-items-center">{{ service.value.name }} ({{ service.value.issuer }})</span>
+            <span class="flex align-items-center service-item-name">{{ service.value.name }} ({{ service.value.issuer }})</span>
             @if (tokensMap.has(service.value.id)) {
-              <span class="flex gap-2 align-items-center">
+              <span class="flex gap-2 align-items-center service-item-token">
                 @let token = tokensMap.get(service.value.id)?.token || '';
                 <p-button icon="pi pi-copy" variant="text"  severity="info" [rounded]="true" (onClick)="copyToken(token)"></p-button>
                 <strong class="flex align-items-center">

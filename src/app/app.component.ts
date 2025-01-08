@@ -10,6 +10,7 @@ import { VersionComponent } from './version/version.component';
 
 @Component({
     selector: 'app-root',
+    standalone: true,
     imports: [
         CommonModule, 
         RouterOutlet,

@@ -22,6 +22,7 @@ import { TotpToken } from '../models/token.model';
 
 @Component({
     selector: 'app-main',
+    standalone: true,
     templateUrl: './main.component.html',
     styleUrls: ['./main.component.scss'],
     imports: [
@@ -92,7 +93,7 @@ export class MainComponent {
 
     async scanQRCode(_event: any) {
         const scanned = await scan({ 
-            windowed: true, 
+            windowed: !true, 
             formats: [Format.QRCode]
         });
         if (!scanned.content) {
@@ -145,7 +146,9 @@ export class MainComponent {
 
     copyToken(token: string) {
         this.clipboard.copy(token);
-        this.snackbar.open(this.translate.translate("Token copied to clipboard"));
+        this.snackbar.open(this.translate.translate("Token copied to clipboard"), "", {
+            duration: 4000
+        });
     }
 
     private calculateTokenDuration(intervalSubscription: Subscription | null) {

@@ -13,7 +13,17 @@
 
 .service-item {
     min-height: 100px;
+
+    .service-item-name {
+        max-width: 40vw;
+        text-wrap: auto;
+    }
+
+    .service-item-token {
+        min-width: 30vw;
+    }
 }
+
 
 .mat-mdc-list-item {
     min-height: 100px;
@@ -23,6 +33,12 @@
 
     p-button {
         visibility: hidden;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .mat-mdc-list-item p-button {
+        visibility: visible;
     }
 }
 
