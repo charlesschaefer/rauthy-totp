@@ -4,10 +4,19 @@ import { RouterOutlet } from '@angular/router';
 import { invoke } from "@tauri-apps/api/core";
 import { TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
+import { ToolbarModule } from 'primeng/toolbar';
+import { MatListModule } from '@angular/material/list';
+import { VersionComponent } from './version/version.component';
 
 @Component({
     selector: 'app-root',
-    imports: [CommonModule, RouterOutlet],
+    imports: [
+        CommonModule, 
+        RouterOutlet,
+        MatListModule,
+        VersionComponent,
+        ToolbarModule
+    ],
     templateUrl: './app.component.html',
     styleUrl: './app.component.scss',
     providers: [

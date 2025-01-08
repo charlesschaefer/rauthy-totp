@@ -9,7 +9,11 @@ import { scan, Format } from '@tauri-apps/plugin-barcode-scanner';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
 import { CommonModule } from '@angular/common';
-import { interval } from 'rxjs';
+import { interval, Subscription } from 'rxjs';
+import { MatListModule } from '@angular/material/list';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Clipboard } from '@angular/cdk/clipboard';
+import { KnobModule } from 'primeng/knob';
 import { DateTime } from 'luxon';
 
 import { TotpService } from '../services/totp.service';
@@ -29,7 +33,9 @@ import { TotpToken } from '../models/token.model';
         CardModule,
         InputTextModule,
         TranslocoModule,
-        ToastModule
+        ToastModule,
+        MatListModule,
+        KnobModule
     ]
 })
 export class MainComponent {
@@ -52,6 +58,8 @@ export class MainComponent {
         private totpService: TotpService,
         private translate: TranslocoService,
         private messageService: MessageService,
+        private clipboard: Clipboard,
+        private snackbar: MatSnackBar
     ) { }
 
     async onSubmit() {
@@ -62,6 +70,8 @@ export class MainComponent {
                     this.totpItems = services;
                     if (services.size === 0) {
                         this.showDialog.set(true);
+                    } else {
+                        this.showTokens();
                     }
                 },
                 error: error => {
@@ -101,6 +111,7 @@ export class MainComponent {
         const subscription = this.totpService.addService(url).subscribe(services => {
             const oldItemsCount = this.totpItems.size;
             this.totpItems = services;
+            this.showTokens();
             if (services.size <= oldItemsCount) {
                 this.showDialog.set(true);
                 this.messageService.add({
@@ -122,15 +133,33 @@ export class MainComponent {
     }
 
     showTokens() {
-        this.totpService.getServicesTokens().subscribe(tokensMap => {
-            this.tokensMap = tokensMap
-            interval(1000).subscribe(() => {
-                this.tokensMap.forEach((token, key) => {
-                    this.tokensDuration.set(key, 
-                        Math.round(DateTime.fromJSDate(token.nextStepTime).diffNow('seconds').as('seconds'))
-                    );
-                })
-            })
+        const subscription = this.totpService.getServicesTokens().subscribe(tokensMap => {
+            subscription.unsubscribe();
+            this.tokensMap = tokensMap;
+            this.calculateTokenDuration(null);
+            const intervalSubscription = interval(1000).subscribe(() => {
+                this.calculateTokenDuration(intervalSubscription);
+            });
         });
+    }
+
+    copyToken(token: string) {
+        this.clipboard.copy(token);
+        this.snackbar.open(this.translate.translate("Token copied to clipboard"));
+    }
+
+    private calculateTokenDuration(intervalSubscription: Subscription | null) {
+        let minDuration = Infinity;
+        const durations = new Map<string, number>();
+        this.tokensMap.forEach((token, key) => {
+            const duration = Math.round(DateTime.fromJSDate(token.nextStepTime).diffNow('seconds').as('seconds'));
+            minDuration = Math.min(minDuration, duration);
+            durations.set(key, duration);
+        });
+        this.tokensDuration = durations;
+        if (minDuration < 0) {
+            this.showTokens();
+            intervalSubscription?.unsubscribe();
+        }
     }
 } 

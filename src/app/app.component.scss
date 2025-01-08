@@ -1,4 +1,22 @@
-/* src/app/app.component.css */
+img#logo-icon {
+    display: none;
+}
+
+img#logo {
+    height: 40px;
+}
+
+p-toolbar {
+    position: fixed;
+    width: 100%;
+    margin-bottom: 20px;
+    z-index: 1;
+}
+
+header {
+    height: 70px;
+}
+
 .container {
   display: flex;
   flex-direction: column;
@@ -15,4 +33,11 @@
     flex-direction: row;
     justify-content: space-between;
   }
+}
+
+footer {
+    color: var(--p-text-muted-color);
+    font-size: 0.85em;
+    margin-top: 20px;
+    border-top: 1px solid var(--p-surface-100);
 }

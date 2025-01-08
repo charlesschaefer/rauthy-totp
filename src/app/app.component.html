@@ -1,1 +1,26 @@
-<router-outlet></router-outlet>
+<div class="flex flex-column h-full min-h-screen justify-content-evenly">
+  <header class="flex flex-initial">
+    <p-toolbar>
+      <div class="p-toolbar-group-start">
+        <!-- <h2 class="title">{{ title }}</h2> -->
+        <a routerLink="/">
+          <img src="assets/logo.png" id="logo" alt="logo" aria-label="label" />
+          <img src="assets/icon.svg" id="logo-icon" alt="logo svg" aria-label="logo svg" />
+        </a>
+      </div>
+      <div class="p-toolbar-group-center text-sm">
+        
+      </div>
+      <div class="p-toolbar-group-end">
+        <!-- <app-sidemenu [(showSidebar)]="showSidebar" [syncStatus]="syncStatus" [currentUser]="currentUser()" /> -->
+      </div>
+    </p-toolbar>
+  </header>
+  <main class="flex flex-grow-1 flex-column">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="flex flex-initial justify-content-center aligm-items-end">
+    <app-version />
+  </footer>
+</div>
