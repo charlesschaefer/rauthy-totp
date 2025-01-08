@@ -86,9 +86,8 @@ parts:
       npm run tauri build -- --bundles deb
       dpkg -x src-tauri/target/release/bundle/deb/*.deb $SNAPCRAFT_PART_INSTALL/
       if [ -d $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/32x32/apps ]; then
-        sed -i -e "s|Icon=rauthy|Icon=/usr/share/icons/hicolor/32x32/apps/rauthy.png|g" $SNAPCRAFT_PART_INSTALL/usr/share/applications/Rauthy.desktop
+        sed -i -e "s|Icon=rauthy|Icon=/usr/share/icons/hicolor/32x32/apps/rauthy.png|g" $SNAPCRAFT_PART_INSTALL/usr/share/applications/rauthy.desktop
       fi
-      cp $SNAPCRAFT_PART_INSTALL/usr/share/applications/Rauthy.desktop $SNAPCRAFT_PART_INSTALL/usr/share/applications/rauthy.desktop
 slots:
   dbus-daemon:
     interface: dbus
