@@ -15,11 +15,6 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            # - uses: pnpm/action-setup@v4
-            #   with:
-            #       version: 8
-            #       run_install: false
-
             - name: Setup Java
               uses: actions/setup-java@v4
               with:
@@ -66,8 +61,6 @@ jobs:
               with:
                   targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
             
-            # - name: Install dependencies
-            #   run: pnpm install
 
             - name: setup Android signing
               env:
@@ -107,12 +100,8 @@ jobs:
                   ~/.gradle/
                 key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
                 
-            - name: generate environment files
-              run: SUPABASE_URL="${{ secrets.SUPABASE_URL }}" SUPABASE_KEY="${{ secrets.SUPABASE_KEY }}" npm run generate-env
-
             - name: Build app bundle
               run: npm run tauri android build 
-              # run: npm run tauri info
               env:
                   NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.11902837
 
@@ -140,22 +129,10 @@ jobs:
                   echo "Files on the outputs directory, aab"
                   find src-tauri/gen/android/app/build/outputs/ -name "*.aab"
 
-            # - name: Sign APK
-            #   run: |
-            #       ${{ env.ANDROID_HOME }}/build-tools/34.0.0/apksigner sign --ks src-tauri/gen/android/release.decrypted.jks \
-            #         --ks-key-alias $ANDROID_RELEASE_KEY \
-            #         --ks-pass pass:$ANDROID_RELEASE_PASSWORD \
-            #         --key-pass pass:$ANDROID_RELEASE_KEY_PASSWORD \
-            #         --out src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-signed.apk \
-            #         src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
 
             - name: Get Node project version
               id: package-version
               uses: martinbeentjes/npm-get-version-action@v1.3.1
-
-            # - name: Rename APK file
-            #   run: |
-            #       mv ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-signed.apk ./src-tauri/gen/android/app/build/outputs/apk/universal/release/faire-todo-app-${{ steps.package-version.outputs.current-version}}.apk
 
             - name: Publish
               uses: softprops/action-gh-release@v1

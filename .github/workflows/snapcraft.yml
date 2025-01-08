@@ -21,9 +21,6 @@ jobs:
     - name: Installs shelljs
       run: npm i shelljs
 
-    - name: generate environment files
-      run: SUPABASE_URL="${{ secrets.SUPABASE_URL }}" SUPABASE_KEY="${{ secrets.SUPABASE_KEY }}" npm run generate-env
-
     - name: Build Snap package
       uses: snapcore/action-build@v1
       id: build
