@@ -1,4 +1,4 @@
-name: rauthy
+name: rauthy-totp
 base: core22
 architectures:
   - build-on: [arm64]
