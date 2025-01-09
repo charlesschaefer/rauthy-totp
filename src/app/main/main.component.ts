@@ -15,6 +15,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { KnobModule } from 'primeng/knob';
 import { DateTime } from 'luxon';
+// import { SwipeMenuActions, NgxSwipeMenuComponent } from 'ngx-swipe-menu';
+import { NgxSwipeMenuComponent, SwipeMenuActions } from 'ngx-swipe-menu';
 
 import { TotpService } from '../services/totp.service';
 import { Service } from '../models/service.model';
@@ -36,8 +38,10 @@ import { TotpToken } from '../models/token.model';
         TranslocoModule,
         ToastModule,
         MatListModule,
-        KnobModule
-    ]
+        KnobModule,
+        NgxSwipeMenuComponent
+    ],
+    providers: []
 })
 export class MainComponent {
     private fb = inject(FormBuilder);
@@ -54,6 +58,18 @@ export class MainComponent {
 
     showDialog = signal(false);
     showURLInput = signal(false);
+
+    actionList = [
+        {
+            name: 'edit',
+            label: 'Edit',
+            class: '',
+            data: 'treta',
+            onClick(_event: any, data: any) {
+                console.log("Editando o item, Dados: ", data);
+            }
+        }
+    ] as SwipeMenuActions[];
 
     constructor(
         private totpService: TotpService,

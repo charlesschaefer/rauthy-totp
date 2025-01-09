@@ -43,14 +43,48 @@
 }
 
 .mat-mdc-list-item:hover {
-    background-color: rgb(from var(--p-primary-hover-color) r g b / 0.3);
-    color: var(--p-primary-contrast-color);
+    // background-color: rgb(from var(--p-primary-hover-color) r g b / 0.3);
+    // color: var(--p-primary-contrast-color);
 
-    p-knob {
-        color: var(--p-primary-contrast-color);
-    }
+    // p-knob {
+    //     color: var(--p-primary-contrast-color);
+    // }
 
     p-button {
         visibility: visible;
     }
+}
+
+::ng-deep .ngx-swipe-menu {
+    height: 100px !important;
+    width: 100%;
+}
+
+.container ::ng-deep .ngx-swipe-menu.open .ngx-swipe-menu-content {
+    border-radius: 10px 0 0 10px;
+}
+
+.container ::ng-deep .ngx-swipe-menu-content {
+    border-radius: 10px;
+    width: 100%;
+    padding: 0;
+}
+
+.container ::ng-deep .ngx-swipe-menu-content, 
+.container ::ng-deep .ng-swipe-actions-container {
+    background-color: var(--p-primary-contrast-color);
+}
+
+.container ::ng-deep .ngx-swipe-menu-content:hover,
+.container ::ng-deep .ngx-swipe-menu-content.active {
+    background-color: var(--p-indigo-500);
+    color: var(--p-primary-contrast-color);
+}
+
+.container ::ng-deep .ng-swipe-actions-container {
+    background-color: var(--p-yellow-500);
+    border-radius: 0 10px 10px 0;
+}
+.ng-swipe-action-button p-button {
+    visibility: visible;
 }
