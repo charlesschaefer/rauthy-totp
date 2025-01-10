@@ -8,6 +8,7 @@ mod crypto;
 mod state;
 mod storage;
 mod totp;
+mod brandfetch;
 
 #[cfg(mobile)]
 const IS_MOBILE: bool = true;

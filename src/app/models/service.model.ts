@@ -12,4 +12,5 @@ export interface Service {
     algorithm: TotpAlgorithm; // or use enum if you prefer
     digits: number;
     period: number;
+    icon?: string;
 } 

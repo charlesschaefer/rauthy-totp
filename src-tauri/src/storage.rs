@@ -9,6 +9,7 @@ use url::Url;
 
 use crate::crypto::*;
 use crate::totp::*;
+use crate::brandfetch::*;
 
 const STORAGE_FILE: &str = "Rauthy.bin";
 type Error = &'static str;
@@ -41,6 +42,7 @@ pub struct Service {
     algorithm: Algorithm,
     digits: usize,
     period: u64,
+    icon: String, // icon url
 }
 
 impl Default for Service {
@@ -53,6 +55,7 @@ impl Default for Service {
             algorithm: Algorithm::SHA1,
             digits: 6,
             period: 30,
+            icon: String::from("")
         }
     }
 }
@@ -89,6 +92,19 @@ impl TryFrom<TOTP> for Service {
         service.algorithm = totp.algorithm;
         service.digits = totp.digits;
         service.period = totp.step;
+
+        // @TODO: set the client_id here
+        let client_id = "";
+        match search_brand(service.issuer.as_str(), client_id) {
+            Ok(brands) => {
+                if brands.len() > 0 {
+                    service.icon = brands.first().unwrap().icon.clone();
+                }
+            },
+            Err(err) => {
+                dbg!("Error searching brand logo: {}", err);
+            }
+        }
 
         Ok(service)
     }
