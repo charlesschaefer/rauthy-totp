@@ -90,8 +90,8 @@ parts:
       if [ -d $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/32x32/apps ]; then
         sed -i -e "s|Icon=rauthy|Icon=/usr/share/icons/hicolor/32x32/apps/rauthy.png|g" $SNAPCRAFT_PART_INSTALL/usr/share/applications/rauthy.desktop
       fi
-slots:
-  dbus-daemon:
-    interface: dbus
-    bus: session
-    name: com.rauthy
+# slots:
+#   dbus-daemon:
+#     interface: dbus
+#     bus: session
+#     name: com.rauthy
