@@ -19,10 +19,10 @@ pub fn search_brand(name: &str, client_id: &str) -> Result<Vec<Brand>, Box<dyn s
     if response.status_code == 200 {
         // let body: serde_json::Value = serde_json::from_str(&response.as_str()?)?;
         let body: Vec<Brand> = serde_json::from_str(&response.as_str()?)?;
-        println!("Brand data: {:?}", body);
+        // println!("Brand data: {:?}", body);
         Ok(body)
     } else {
-        println!("Error: {}", response.status_code);
+        // println!("Error: {}", response.status_code);
         Err(Box::from(format!("Error: {}", response.status_code)))
     }
 }

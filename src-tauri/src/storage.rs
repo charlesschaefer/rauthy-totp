@@ -194,7 +194,7 @@ impl Storage {
         match encrypt_data(serialized_services, key.as_slice()) {
             // Encrypt the serialized data
             Ok(encrypted_data) => {
-                dbg!("Trying to write to file: {:?}", &self.file_path);
+                // dbg!("Trying to write to file: {:?}", &self.file_path);
                 let mut file = File::create(&self.file_path).unwrap(); // Create or open the file
                 file.write_all(&encrypted_data).unwrap_or_default(); // Write the encrypted data to the file
                 Ok(())
@@ -236,7 +236,7 @@ impl Storage {
 
     pub fn set_base_path(&mut self, path: std::path::PathBuf) {
         self.file_path = String::from(path.join(STORAGE_FILE).to_str().unwrap());
-        dbg!("Setted the file path: {:?}", &self.file_path);
+        // dbg!("Setted the file path: {:?}", &self.file_path);
     }
 }
 

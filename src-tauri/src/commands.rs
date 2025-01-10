@@ -29,7 +29,7 @@ pub fn setup_storage_keys(
     state.storage = storage;
 
     let services = state.storage.services().clone();
-    println!("Services: {:?}", services);
+    // println!("Services: {:?}", services);
     Ok(services)
 }
 
@@ -45,11 +45,11 @@ pub fn add_service(
         state.storage.save_to_file()?;
 
         let services = state.storage.services().clone();
-        println!("Services: {:?}", services);
+        // println!("Services: {:?}", services);
 
         return Ok(services);
     } else {
-        println!("Couldn't create a service from the url");
+        // println!("Couldn't create a service from the url");
         return Ok(std::collections::HashMap::new());
     }
 }
