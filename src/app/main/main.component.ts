@@ -15,7 +15,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { KnobModule } from 'primeng/knob';
 import { DateTime } from 'luxon';
-// import { SwipeMenuActions, NgxSwipeMenuComponent } from 'ngx-swipe-menu';
+import { AvatarModule } from 'primeng/avatar';
+import { RippleModule } from 'primeng/ripple';
+import { AutoFocusModule } from 'primeng/autofocus';
 import { NgxSwipeMenuComponent, SwipeMenuActions } from 'ngx-swipe-menu';
 
 import { TotpService } from '../services/totp.service';
@@ -39,7 +41,10 @@ import { TotpToken } from '../models/token.model';
         ToastModule,
         MatListModule,
         KnobModule,
-        NgxSwipeMenuComponent
+        NgxSwipeMenuComponent,
+        AvatarModule,
+        RippleModule,
+        AutoFocusModule
     ],
     providers: []
 })

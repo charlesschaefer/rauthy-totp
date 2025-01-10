@@ -7,24 +7,24 @@
         {{"You need to enter your password to open your services file (or create a new one if none exists)" | transloco}}
       </p>
       <div>
-        <input pInputText formControlName="password" type="password" [placeholder]="'Enter password' | transloco" />
+        <input pInputText formControlName="password" type="password" [pAutoFocus]="true" [placeholder]="'Enter password' | transloco" />
         <p-button type="submit">{{"Submit" | transloco}}</p-button>
       </div>
     </form>
     }
 
-    <div *ngIf="showDialog()">
+    <div *ngIf="totpItems.size === 0 && showDialog()">
       <p>{{"No services found!" | transloco}}</p>
     </div>
 
     <div *ngIf="totpItems.size > 0" class="flex flex-column flex-grow-1">
       <div class="flex flex-row gap-3 justify-content-center">
         <h2 class="flex">{{"Available Services" | transloco}}</h2>
-        <p-button class="flex align-content-center " severity="info" variant="text" (onClick)="showDialog.set(true)">{{"Add Service" | transloco}}</p-button>
+        <p-button class="flex align-content-center " variant="text" (onClick)="showDialog.set(true)">{{"Add Service" | transloco}}</p-button>
       </div>
-      <mat-list>
-        <mat-list-item *ngFor="let service of totpItems | keyvalue">
-          <ngx-swipe-menu [actions]="actionList">
+      <ul>
+        <li *ngFor="let service of totpItems | keyvalue">
+          <ngx-swipe-menu [actions]="actionList" [minSwipeDistance]="20">
             <ng-template #actions>
               <div class="flex flex-row gap-2">
                 <div class="ng-swipe-action-button ng-swipe-action-button-remove">
@@ -35,33 +35,46 @@
                 </div>
               </div>
             </ng-template>
-            <div class="flex gap-3 justify-content-around service-item">
-              <span class="flex align-items-center service-item-name">{{ service.value.name }} ({{ service.value.issuer }})</span>
+            @let token = tokensMap.get(service.value.id)?.token || '';
+            <div class="flex gap-3 justify-content-around align-items-center service-item">
+              <div class="flex service-item-logo">
+                @if (service.value.icon) {
+                  <p-avatar [image]="service.value.icon" size="xlarge" shape="circle" />
+                } @else {
+                  <p-avatar [label]="service.value.issuer[0]" size="xlarge" shape="circle" />
+                }
+              </div>
+              <div class="flex flex-grow-1 align-items-start service-item-name flex-column">
+                <span class="service-name text-xl">{{ service.value.name }}</span>
+                <span class="service-issuer text-sm">{{ service.value.issuer }}</span>
+              </div>
               @if (tokensMap.has(service.value.id)) {
-                <span class="flex gap-2 align-items-center service-item-token">
-                  @let token = tokensMap.get(service.value.id)?.token || '';
-                  <p-button icon="pi pi-copy" variant="text"  severity="info" [rounded]="true" (onClick)="copyToken(token)"></p-button>
+                <div class="flex gap-2 align-items-center service-item-token"
+                  (click)="copyToken(token)" (keypress)="copyToken(token)" aria-hidden="true"
+                  pRipple
+                >
+                  <!-- <p-button icon="pi pi-copy" variant="text"  severity="info" [rounded]="true" (onClick)="copyToken(token)"></p-button> -->
                   <strong class="flex align-items-center">
                     {{ token?.substr(0, 3) }}
                     {{ token?.substr(3) }}
                   </strong>
                   @if (tokensDuration.has(service.value.id)) {
                     @let duration = tokensDuration.get(service.value.id);
-                    <span class="flex align-items-center">
-                        @if (duration && duration > 0) {
+                    <span class="flex flex-shrink-1 align-items-center">
+                        <!-- @if (duration && duration > 0) { -->
                           <!-- {{ duration }} {{"seconds" | transloco}} -->
                           <p-knob [readonly]="true" class="flex align-items-center" max="30" min="0" [ngModel]="tokensDuration.get(service.value.id)" size="45" />
-                        } @else {
+                        <!-- } @else {
                           {{"invalid" | transloco}}
-                        }
+                        } -->
                     </span>
                   }
-                </span>
+                </div>
               }
             </div>
           </ngx-swipe-menu>
-        </mat-list-item>
-      </mat-list>
+        </li>
+      </ul>
     </div>
 
   </div>
