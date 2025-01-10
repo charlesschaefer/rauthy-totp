@@ -77,6 +77,8 @@ parts:
       - libayatana-appindicator3-1
       - libglu1-mesa
       - freeglut3
+    build-environment:
+      - BRANDFETCH_USER_ID: "{{BRANDFETCH_USER_ID}}"
     source: .
     override-build: |
       set -eu

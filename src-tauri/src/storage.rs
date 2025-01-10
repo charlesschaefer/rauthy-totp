@@ -94,7 +94,7 @@ impl TryFrom<TOTP> for Service {
         service.period = totp.step;
 
         // @TODO: set the client_id here
-        let client_id = "";
+        let client_id = env!("BRANDFETCH_USER_ID", "Brandfetch user_id env var not defined");
         match search_brand(service.issuer.as_str(), client_id) {
             Ok(brands) => {
                 if brands.len() > 0 {

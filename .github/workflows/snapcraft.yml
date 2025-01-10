@@ -21,6 +21,11 @@ jobs:
     - name: Installs shelljs
       run: npm i shelljs
 
+    - name: Adds env vars to Snapcraft
+      env:
+        BRANDFETCH_USER_ID: ${{ secrets.BRANDFETCH_USER_ID }}
+      run: sed -i -e "s/{{BRANDFETCH_USER_ID}}/$BRANDFETCH_USER_ID/g" ./snapcraft.yaml
+
     - name: Build Snap package
       uses: snapcore/action-build@v1
       id: build

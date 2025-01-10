@@ -104,6 +104,7 @@ jobs:
               run: npm run tauri android build 
               env:
                   NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.11902837
+                  BRANDFETCH_USER_ID: ${{ secrets.BRANDFETCH_USER_ID }}
 
             - name: Create gradle cache
               uses: actions/cache/save@v4
