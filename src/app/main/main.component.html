@@ -24,7 +24,7 @@
       </div>
       <ul>
         <li *ngFor="let service of totpItems | keyvalue">
-          <ngx-swipe-menu [actions]="actionList" [minSwipeDistance]="20">
+          <ngx-swipe-menu [swipeLeftActions]="actionList" [minSwipeDistance]="20">
             <ng-template #actions>
               <div class="flex flex-row gap-2">
                 <div class="ng-swipe-action-button ng-swipe-action-button-remove">
@@ -59,7 +59,7 @@
                     {{ token?.substr(3) }}
                   </strong>
                   @if (tokensDuration.has(service.value.id)) {
-                    @let duration = tokensDuration.get(service.value.id);
+                    <!-- @let duration = tokensDuration.get(service.value.id); -->
                     <span class="flex flex-shrink-1 align-items-center">
                         <!-- @if (duration && duration > 0) { -->
                           <!-- {{ duration }} {{"seconds" | transloco}} -->
