@@ -5,9 +5,8 @@
   "identifier": "com.rauthy",
   "build": {
     "beforeDevCommand": "npm run start",
-    "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist/rauthy/browser"
+    "devUrl": "http://192.168.1.7:1420"
   },
   "app": {
     "windows": [

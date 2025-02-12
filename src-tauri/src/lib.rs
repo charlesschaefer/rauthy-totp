@@ -34,7 +34,9 @@ pub fn run() {
 
     #[cfg(mobile)]
     if IS_MOBILE {
-        builder = builder.plugin(tauri_plugin_barcode_scanner::init());
+        builder = builder
+            .plugin(tauri_plugin_barcode_scanner::init())
+            .plugin(tauri_plugin_biometric::init());
     }
 
     builder

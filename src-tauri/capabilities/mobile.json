@@ -16,6 +16,8 @@
                 "path": "$APPLOCALDATA/Rauthy.bin"
             }
         ]
-    }
+    },
+    "biometric:default",
+    "biometric:allow-biometric-cipher"
   ]
 }

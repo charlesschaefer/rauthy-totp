@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
@@ -23,6 +23,8 @@ import { NgxSwipeMenuComponent, SwipeMenuActions } from 'ngx-swipe-menu';
 import { TotpService } from '../services/totp.service';
 import { Service } from '../models/service.model';
 import { TotpToken } from '../models/token.model';
+import { invoke } from '@tauri-apps/api/core';
+import { LocalStorageService } from '../services/local-storage.service';
 
 @Component({
     selector: 'app-main',
@@ -48,7 +50,7 @@ import { TotpToken } from '../models/token.model';
     ],
     providers: []
 })
-export class MainComponent {
+export class MainComponent implements OnInit {
     private fb = inject(FormBuilder);
     form = this.fb.group({
         password: ['', Validators.required],
@@ -63,6 +65,9 @@ export class MainComponent {
 
     showDialog = signal(false);
     showURLInput = signal(false);
+    askForPasswordStorage = signal(false);
+
+    encryptedPassword = "";
 
     actionList = [
         {
@@ -81,11 +86,19 @@ export class MainComponent {
         private translate: TranslocoService,
         private messageService: MessageService,
         private clipboard: Clipboard,
-        private snackbar: MatSnackBar
+        private snackbar: MatSnackBar,
+        private localStorage: LocalStorageService
     ) { }
 
-    async onSubmit() {
-        if (this.form.valid) {
+    ngOnInit(): void {
+        if (this.localStorage.hasItem('encryptedPassword')) {
+            this.encryptedPassword = this.localStorage.getItem('encryptedPassword') as string;
+            this.fetchWithoutPassword();
+        }
+    }
+
+    async onSubmit(internal: boolean = false) {
+        if (this.form.valid || internal) {
             const subscription = this.totpService.setupStorageKeys(this.form.value.password as string).subscribe({
                 next: services => {
                     subscription.unsubscribe();
@@ -94,6 +107,10 @@ export class MainComponent {
                         this.showDialog.set(true);
                     } else {
                         this.showTokens();
+                    }
+                    
+                    if (!this.localStorage.hasItem('encryptedPassword')) {
+                        this.askForPasswordStorage.set(true);
                     }
                 },
                 error: error => {
@@ -170,6 +187,55 @@ export class MainComponent {
         this.snackbar.open(this.translate.translate("Token copied to clipboard"), "", {
             duration: 4000
         });
+    }
+
+    async storePasswordWithBiometrics(event: Event) {
+        const password = this.form.value.password;
+        const options = {
+            // Set true if you want the user to be able to authenticate using phone password
+            allowDeviceCredential: false,
+            cancelTitle: "You won't be able to login without password",
+
+            // Android only features
+            title: 'Login withouth password',
+            subtitle: 'Next times you will be able to login using your biometrics authentication',        
+        };
+        const encryptedData = await invoke<{data: string}>('plugin:biometric|biometric_cipher', {
+            reason: "Next time you will be able to login with your biometrics",
+            ...options,
+            dataToEncrypt: password
+        });
+
+        console.log("Encrypted Data: ", encryptedData);
+        this.encryptedPassword = encryptedData.data;
+        this.localStorage.setItem("encryptedPassword", this.encryptedPassword);
+        this.askForPasswordStorage.set(false);
+    }
+
+    async fetchWithoutPassword() {
+        console.log("Entrou no fetchWithoutPassword");
+        const encryptedData = this.encryptedPassword;
+        
+        const options = {
+            // Set true if you want the user to be able to authenticate using phone password
+            allowDeviceCredential: false,
+            cancelTitle: "Cancel and type password",
+
+            // Android only features
+            title: 'Open services without password',
+            subtitle: ''
+        };
+
+        const originalPass = await invoke<{data: string}>('plugin:biometric|biometric_cipher', {
+            reason: "Open service files without password",
+            ...options,
+            dataToDecrypt: encryptedData
+        });
+
+        console.log("Original pass: ", originalPass.data);
+
+        this.form.patchValue({"password": originalPass.data});
+        this.onSubmit(true);
     }
 
     private calculateTokenDuration(intervalSubscription: Subscription | null) {

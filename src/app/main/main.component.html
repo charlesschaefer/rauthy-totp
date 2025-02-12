@@ -100,4 +100,18 @@
     </p-card>
   </ng-container>
 </p-dialog>
+
+<p-dialog [(visible)]="askForPasswordStorage" header="Login with fingerprint?" [modal]="true" #loginBiometrics>
+  <p>
+    {{"Do you want to login using your device biometric authentication?" | transloco}}
+  </p>
+  <div class="flex" *ngIf="!showURLInput()">
+    <p-button severity="info" variant="text" [raised]="true" (onClick)="storePasswordWithBiometrics($event)">
+      {{"Yes" | transloco}}
+    </p-button>
+    <p-button severity="help" variant="text" [raised]="true" (onClick)="loginBiometrics.close($event)">
+      {{"No, keep typing password" | transloco}}
+    </p-button>
+  </div>
+</p-dialog>
 <p-toast position="bottom-left" />
