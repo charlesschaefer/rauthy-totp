@@ -18,6 +18,7 @@ import { DateTime } from 'luxon';
 import { AvatarModule } from 'primeng/avatar';
 import { RippleModule } from 'primeng/ripple';
 import { AutoFocusModule } from 'primeng/autofocus';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { NgxSwipeMenuComponent, SwipeMenuActions } from 'ngx-swipe-menu';
 
 import { TotpService } from '../services/totp.service';
@@ -46,7 +47,8 @@ import { LocalStorageService } from '../services/local-storage.service';
         NgxSwipeMenuComponent,
         AvatarModule,
         RippleModule,
-        AutoFocusModule
+        AutoFocusModule,
+        ProgressSpinnerModule
     ],
     providers: []
 })
@@ -66,6 +68,7 @@ export class MainComponent implements OnInit {
     showDialog = signal(false);
     showURLInput = signal(false);
     askForPasswordStorage = signal(false);
+    loadingServices = signal(false);
 
     encryptedPassword = "";
 
@@ -99,8 +102,10 @@ export class MainComponent implements OnInit {
 
     async onSubmit(internal: boolean = false) {
         if (this.form.valid || internal) {
+            this.loadingServices.set(true);
             const subscription = this.totpService.setupStorageKeys(this.form.value.password as string).subscribe({
                 next: services => {
+                    this.loadingServices.set(false);
                     subscription.unsubscribe();
                     this.totpItems = services;
                     if (services.size === 0) {
@@ -114,6 +119,7 @@ export class MainComponent implements OnInit {
                     }
                 },
                 error: error => {
+                    this.loadingServices.set(false);
                     subscription.unsubscribe();
                     this.messageService.add({
                         summary: this.translate.translate("Error trying to open the services file"),

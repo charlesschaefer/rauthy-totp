@@ -1,6 +1,9 @@
 <section class="container">
   <div class="flex">
     <!-- <div></div> -->
+    @if (loadingServices()) {
+      <p-progress-spinner ariaLabel="loading" />
+    }
     @if (!totpItems.size) {
     <form [formGroup]="form" class="flex flex-grow-1 flex-column align-items-center" (ngSubmit)="onSubmit()">
       <p>
