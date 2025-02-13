@@ -1,0 +1,15 @@
+<p-dialog [(visible)]="visible" [header]="'Edit Service' | transloco" [modal]="true">
+    <form [formGroup]="editForm" (ngSubmit)="onSubmit()" class="flex flex-column gap-3">
+        <div class="flex flex-column gap-2">
+            <label for="name">{{"Service Name" | transloco}}</label>
+            <input id="name" type="text" pInputText formControlName="name" />
+        </div>
+        <div class="flex flex-column gap-2">
+            <label for="issuer">{{"Service Issuer" | transloco}}</label>
+            <input id="issuer" type="text" pInputText formControlName="issuer" />
+        </div>
+        <div class="flex justify-content-end">
+            <p-button type="submit" [disabled]="!editForm.valid">{{"Save Changes" | transloco}}</p-button>
+        </div>
+    </form>
+</p-dialog>

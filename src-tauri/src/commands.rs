@@ -79,3 +79,16 @@ pub fn get_services_tokens(
         Err(_) => Err(()),
     }
 }
+
+#[tauri::command]
+pub fn update_service(
+    app_state: State<'_, Mutex<AppState>>,
+    service: Service,
+) -> Result<(), ()> {
+    let mut state = app_state.lock().unwrap();
+    
+    state.storage.update_service(service);
+    state.storage.save_to_file()?;
+
+    Ok(())
+}

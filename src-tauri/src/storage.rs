@@ -238,6 +238,10 @@ impl Storage {
         self.file_path = String::from(path.join(STORAGE_FILE).to_str().unwrap());
         // dbg!("Setted the file path: {:?}", &self.file_path);
     }
+
+    pub fn update_service(&mut self, service: Service) {
+        self.services.insert(service.id.clone(), service);
+    }
 }
 
 impl ServicesTokens for Storage {

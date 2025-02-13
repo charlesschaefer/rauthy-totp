@@ -44,7 +44,8 @@ pub fn run() {
             commands::remove_service,
             commands::add_service,
             commands::setup_storage_keys,
-            commands::get_services_tokens
+            commands::get_services_tokens,
+            commands::update_service
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
