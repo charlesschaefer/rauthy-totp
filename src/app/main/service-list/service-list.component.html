@@ -5,7 +5,14 @@
   </div>
   <ul>
     <li *ngFor="let service of totpItems | keyvalue">
-      <ngx-swipe-menu [swipeLeftActions]="actionList" [minSwipeDistance]="20" [data]="service.value">
+      <!-- <ngx-swipe-menu [swipeLeftActions]="actionList" [minSwipeDistance]="20" [data]="service.value"> [swipeLeftActionLabel]="'Edit'|transloco" [swipeRightActionLabel]="'Delete'|transloco" -->
+      <ngx-swipe-menu 
+        [enableSwipeLeft]="true" [enableSwipeRight]="true"
+        swipeLeftActionIcon="pi pi-pencil" swipeRightActionIcon="pi pi-trash"
+        [showSwipeLeftActions]="false" [showSwipeRightActions]="false" 
+        (swipeLeftDefaultAction)="onSwipeLeft(service.value)" (swipeRightDefaultAction)="onSwipeRight(service.value)"
+        [data]="service.value"
+      >
         <ng-template #actions>
           <div class="flex flex-row gap-2">
             <div class="ng-swipe-action-button ng-swipe-action-button-remove">

@@ -75,6 +75,24 @@ li {
         &.open .ngx-swipe-menu-content {
             border-radius: 10px 0 0 10px;
         }
+
+        .ng-swipe-right-actions-container {
+            background-color: var(--p-red-500);
+            border-radius: 10px 0 0 10px;
+    
+            .pi {
+                color: white;
+            }
+        }
+        
+        .ng-swipe-left-actions-container {
+            background-color: var(--p-orange-500);
+            border-radius: 0 10px 10px 0;
+    
+            .pi {
+                color: white;
+            }
+        }
     }
 
     ::ng-deep .ng-swipe-actions-container {
@@ -82,6 +100,8 @@ li {
         border-radius: 0 10px 10px 0;
         right: 2px;
     }
+
+    
 }
 
 .ng-swipe-action-button p-button {

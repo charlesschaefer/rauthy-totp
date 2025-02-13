@@ -3,11 +3,15 @@
   "Enter password": "Enter password",
   "Submit": "Submit",
   "No services found!": "No services found!",
-  "Available Services": "Available Services",
-  "Add Service": "Add Service",
   "Do you want to login using your device biometric authentication?": "Do you want to login using your device biometric authentication?",
   "Yes": "Yes",
   "No, keep typing password": "No, keep typing password",
+  "Available Services": "Available Services",
+  "Add Service": "Add Service",
+  "Edit Service": "Edit Service",
+  "Service Name": "Service Name",
+  "Service Issuer": "Service Issuer",
+  "Save Changes": "Save Changes",
   "Choose to scan a QR code or paste a string to add a new service.": "Choose to scan a QR code or paste a string to add a new service.",
   "Scan QRCode": "Scan QRCode",
   "Paste URL": "Paste URL",
@@ -21,5 +25,9 @@
   "Couldn't add this service!": "Couldn't add this service!",
   "Service Added": "Service Added",
   "Service added successfully!": "Service added successfully!",
-  "Token copied to clipboard": "Token copied to clipboard"
+  "Token copied to clipboard": "Token copied to clipboard",
+  "Service Updated": "Service Updated",
+  "Service updated successfully!": "Service updated successfully!",
+  "Update Error": "Update Error",
+  "Could not update service: ": "Could not update service: "
 }

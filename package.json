@@ -8,7 +8,8 @@
         "watch": "ng build --watch --configuration development",
         "tauri": "tauri",
         "lint": "ng lint",
-        "i18n:extract": "transloco-keys-manager extract",
+        "i18n:extract": "transloco-keys-manager extract -l en,pt-BR",
+        "i18n:find": "transloco-keys-manager find -l en,pt-BR",
         "bump-version": "node scripts/version-bumper.js"
     },
     "private": true,

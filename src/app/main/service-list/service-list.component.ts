@@ -34,6 +34,7 @@ export class ServiceListComponent {
     @Output() addService = new EventEmitter<void>();
     @Output() copyToken = new EventEmitter<string>();
     @Output() editService = new EventEmitter<Service>();
+    @Output() deleteService = new EventEmitter<Service>();
 
     actionList = [
         {
@@ -55,4 +56,14 @@ export class ServiceListComponent {
             }
         }
     ] as SwipeMenuActions[];
+
+    onSwipeLeft(service: Service) {
+        console.log("Swipe left")
+        this.editService.emit(service);
+    }
+
+    onSwipeRight(service: Service) {
+        console.log("Swipe right")
+        this.deleteService.emit(service);
+    }
 }
