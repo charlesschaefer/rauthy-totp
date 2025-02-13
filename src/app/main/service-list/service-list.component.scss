@@ -1,16 +1,8 @@
-.container {
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
+::ng-deep app-service-list {
+    display:flex;
 }
 
-@media (min-width: 768px) {
-  .container {
-    justify-content: space-between;
-  }
-}
-
-.service-item {
+::ng-deep .service-item {
     min-height: 100px;
 
     .service-item-name {
@@ -38,7 +30,6 @@
     }
 }
 
-
 li {
     min-height: 100px;
     padding: 0px;
@@ -55,8 +46,7 @@ li {
     }
 }
 
-/** Entries for ngx-swipe-menu styles */
-.container {
+:host {
     ::ng-deep .ngx-swipe-menu-content {
         border-radius: 10px;
         width: 100%;
@@ -96,4 +86,9 @@ li {
 
 .ng-swipe-action-button p-button {
     visibility: visible;
+}
+
+ul, li {
+    list-style: none;
+    padding: 0;
 }

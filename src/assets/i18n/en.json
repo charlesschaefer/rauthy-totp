@@ -1,1 +1,25 @@
-{}
+{
+  "You need to enter your password to open your services file (or create a new one if none exists)": "You need to enter your password to open your services file (or create a new one if none exists)",
+  "Enter password": "Enter password",
+  "Submit": "Submit",
+  "No services found!": "No services found!",
+  "Available Services": "Available Services",
+  "Add Service": "Add Service",
+  "Do you want to login using your device biometric authentication?": "Do you want to login using your device biometric authentication?",
+  "Yes": "Yes",
+  "No, keep typing password": "No, keep typing password",
+  "Choose to scan a QR code or paste a string to add a new service.": "Choose to scan a QR code or paste a string to add a new service.",
+  "Scan QRCode": "Scan QRCode",
+  "Paste URL": "Paste URL",
+  "Add service by URL": "Add service by URL",
+  "Paste here the URL your service provided": "Paste here the URL your service provided",
+  "Error trying to open the services file": "Error trying to open the services file",
+  "Couldn't open the services file: ": "Couldn't open the services file: ",
+  "QRCode Error": "QRCode Error",
+  "QRCode scanning returned no content!": "QRCode scanning returned no content!",
+  "Service format Error": "Service format Error",
+  "Couldn't add this service!": "Couldn't add this service!",
+  "Service Added": "Service Added",
+  "Service added successfully!": "Service added successfully!",
+  "Token copied to clipboard": "Token copied to clipboard"
+}

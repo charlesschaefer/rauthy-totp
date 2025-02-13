@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { Injectable } from '@angular/core';
+import { from } from 'rxjs';
 
 import { Service } from '../models/service.model';
 import { Observable, Subject } from 'rxjs';
@@ -69,5 +70,9 @@ export class TotpService {
             this.tokens.next(this.tokensContent);
         });
         return this.tokens;
+    }
+
+    updateService(service: Service): Observable<void> {
+        return from(invoke<void>('update_service', { service }));
     }
 } 

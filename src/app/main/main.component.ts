@@ -20,12 +20,15 @@ import { RippleModule } from 'primeng/ripple';
 import { AutoFocusModule } from 'primeng/autofocus';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { NgxSwipeMenuComponent, SwipeMenuActions } from 'ngx-swipe-menu';
+import { ServiceAddComponent } from './service-add/service-add.component';
+import { ServiceEditComponent } from './service-edit/service-edit.component';
 
 import { TotpService } from '../services/totp.service';
 import { Service } from '../models/service.model';
 import { TotpToken } from '../models/token.model';
 import { invoke } from '@tauri-apps/api/core';
 import { LocalStorageService } from '../services/local-storage.service';
+import { ServiceListComponent } from './service-list/service-list.component';
 
 @Component({
     selector: 'app-main',
@@ -44,11 +47,13 @@ import { LocalStorageService } from '../services/local-storage.service';
         ToastModule,
         MatListModule,
         KnobModule,
-        NgxSwipeMenuComponent,
         AvatarModule,
         RippleModule,
         AutoFocusModule,
-        ProgressSpinnerModule
+        ProgressSpinnerModule,
+        ServiceAddComponent,
+        ServiceListComponent,
+        ServiceEditComponent
     ],
     providers: []
 })
@@ -57,18 +62,16 @@ export class MainComponent implements OnInit {
     form = this.fb.group({
         password: ['', Validators.required],
     });
-    urlInput = this.fb.group({
-        serviceUrl: ['', Validators.required],
-    });
 
     totpItems = new Map<string, Service>();
     tokensMap = new Map<string, TotpToken>();
     tokensDuration = new Map<string, number>();
 
     showDialog = signal(false);
-    showURLInput = signal(false);
     askForPasswordStorage = signal(false);
     loadingServices = signal(false);
+    showEditDialog = signal(false);
+    selectedService?: Service;
 
     encryptedPassword = "";
 
@@ -80,6 +83,15 @@ export class MainComponent implements OnInit {
             data: 'treta',
             onClick(_event: any, data: any) {
                 console.log("Editando o item, Dados: ", data);
+            }
+        },
+        {
+            name: 'delete',
+            label: 'Delete',
+            class: '',
+            data: 'treta',
+            onClick(_event: any, data: any) {
+                console.log("Removendo o item, Dados: ", data);
             }
         }
     ] as SwipeMenuActions[];
@@ -131,8 +143,8 @@ export class MainComponent implements OnInit {
         }
     }
 
-    async onSubmitServiceUrl() {
-        this.addNewService(this.urlInput.value.serviceUrl as string);
+    async onSubmitServiceUrl(serviceUrl: string) {
+        this.addNewService(serviceUrl);
     }
 
     async scanQRCode(_event: any) {
@@ -145,7 +157,6 @@ export class MainComponent implements OnInit {
                 summary: this.translate.translate("QRCode Error"),
                 detail: this.translate.translate("QRCode scanning returned no content!"),
                 severity: 'error',
-
             });
             return;
         }
@@ -163,7 +174,6 @@ export class MainComponent implements OnInit {
                     summary: this.translate.translate("Service format Error"),
                     detail: this.translate.translate("Couldn't add this service!"),
                     severity: 'error',
-
                 });
             } else {
                 this.showDialog.set(false);
@@ -257,5 +267,35 @@ export class MainComponent implements OnInit {
             this.showTokens();
             intervalSubscription?.unsubscribe();
         }
+    }
+
+    onServiceEdit(event: {id: string, name: string, issuer: string}) {
+        const service = this.totpItems.get(event.id);
+        if (service) {
+            service.name = event.name;
+            service.issuer = event.issuer;
+            // Update the service in storage
+            const subscription = this.totpService.updateService(service).subscribe({
+                next: () => {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: this.translate.translate('Service Updated'),
+                        detail: this.translate.translate('Service updated successfully!')
+                    });
+                },
+                error: (error) => {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: this.translate.translate('Update Error'),
+                        detail: this.translate.translate('Could not update service: ') + error
+                    });
+                }
+            });
+        }
+    }
+
+    editService(service: Service) {
+        this.selectedService = service;
+        this.showEditDialog.set(true);
     }
 } 

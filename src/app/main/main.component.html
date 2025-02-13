@@ -1,5 +1,5 @@
 <section class="container">
-  <div class="flex">
+  <div class="flex flex-column">
     <!-- <div></div> -->
     @if (loadingServices()) {
       <p-progress-spinner ariaLabel="loading" />
@@ -20,95 +20,37 @@
       <p>{{"No services found!" | transloco}}</p>
     </div>
 
-    <div *ngIf="totpItems.size > 0" class="flex flex-column flex-grow-1">
-      <div class="flex flex-row gap-3 justify-content-center">
-        <h2 class="flex">{{"Available Services" | transloco}}</h2>
-        <p-button class="flex align-content-center " variant="text" (onClick)="showDialog.set(true)">{{"Add Service" | transloco}}</p-button>
-      </div>
-      <ul>
-        <li *ngFor="let service of totpItems | keyvalue">
-          <ngx-swipe-menu [swipeLeftActions]="actionList" [minSwipeDistance]="20">
-            <ng-template #actions>
-              <div class="flex flex-row gap-2">
-                <div class="ng-swipe-action-button ng-swipe-action-button-remove">
-                  <p-button severity="danger" icon="pi pi-trash" />
-                </div>
-                <div class="ng-swipe-action-button ng-swipe-action-button-edit" >
-                  <p-button severity="success" icon="pi pi-pencil" />
-                </div>
-              </div>
-            </ng-template>
-            @let token = tokensMap.get(service.value.id)?.token || '';
-            <div class="flex gap-3 justify-content-around align-items-center service-item">
-              <div class="flex service-item-logo">
-                @if (service.value.icon) {
-                  <p-avatar [image]="service.value.icon" size="xlarge" shape="circle" />
-                } @else {
-                  <p-avatar [label]="service.value.issuer[0]" size="xlarge" shape="circle" />
-                }
-              </div>
-              <div class="flex flex-grow-1 align-items-start service-item-name flex-column">
-                <span class="service-name text-xl">{{ service.value.name }}</span>
-                <span class="service-issuer text-sm">{{ service.value.issuer }}</span>
-              </div>
-              @if (tokensMap.has(service.value.id)) {
-                <div class="flex gap-2 align-items-center service-item-token"
-                  (click)="copyToken(token)" (keypress)="copyToken(token)" aria-hidden="true"
-                  pRipple
-                >
-                  <!-- <p-button icon="pi pi-copy" variant="text"  severity="info" [rounded]="true" (onClick)="copyToken(token)"></p-button> -->
-                  <strong class="flex align-items-center">
-                    {{ token?.substr(0, 3) }}
-                    {{ token?.substr(3) }}
-                  </strong>
-                  @if (tokensDuration.has(service.value.id)) {
-                    <!-- @let duration = tokensDuration.get(service.value.id); -->
-                    <span class="flex flex-shrink-1 align-items-center">
-                        <!-- @if (duration && duration > 0) { -->
-                          <!-- {{ duration }} {{"seconds" | transloco}} -->
-                          <p-knob [readonly]="true" class="flex align-items-center" max="30" min="0" [ngModel]="tokensDuration.get(service.value.id)" size="45" />
-                        <!-- } @else {
-                          {{"invalid" | transloco}}
-                        } -->
-                    </span>
-                  }
-                </div>
-              }
-            </div>
-          </ngx-swipe-menu>
-        </li>
-      </ul>
-    </div>
+    @if (totpItems.size > 0) {
+      <app-service-list
+        [totpItems]="totpItems"
+        [tokensMap]="tokensMap"
+        [tokensDuration]="tokensDuration"
+        (addService)="showDialog.set(true)"
+        (copyToken)="copyToken($event)"
+        (editService)="editService($event)"
+      />
+    }
 
   </div>
 </section>
-<p-dialog [(visible)]="showDialog" header="Add Service" [modal]="true">
-  <p>
-    {{"Choose to scan a QR code or paste a string to add a new service." | transloco}}
-  </p>
-  <div class="flex" *ngIf="!showURLInput()">
-    <p-button severity="info" variant="text" [raised]="true" (onClick)="scanQRCode($event)">
-      {{"Scan QRCode" | transloco}}
-    </p-button>
-    <p-button severity="help" variant="text" [raised]="true" (onClick)="showURLInput.set(true)">
-      {{"Paste URL" | transloco}}
-    </p-button>
-  </div>
-  <ng-container *ngIf="showURLInput()">
-    <p-card [header]="'Add service by URL' | transloco">
-      <form [formGroup]="urlInput" (ngSubmit)="onSubmitServiceUrl()">
-        <input type="text" pInputText formControlName="serviceUrl" [placeholder]="'Paste here the URL your service provided' | transloco" />
-        <button type="submit" pButton severity="info">{{"Add Service" | transloco}}</button>
-      </form>
-    </p-card>
-  </ng-container>
-</p-dialog>
+
+<app-service-add 
+  [(visible)]="showDialog"
+  (onScanQRCode)="scanQRCode($event)"
+  (serviceUrlAdded)="onSubmitServiceUrl($event)"
+/>
+
+<app-service-edit
+  [(visible)]="showEditDialog"
+  [service]="selectedService"
+  (serviceEdited)="onServiceEdit($event)"
+/>
 
 <p-dialog [(visible)]="askForPasswordStorage" header="Login with fingerprint?" [modal]="true" #loginBiometrics>
   <p>
     {{"Do you want to login using your device biometric authentication?" | transloco}}
   </p>
-  <div class="flex" *ngIf="!showURLInput()">
+  <div class="flex">
     <p-button severity="info" variant="text" [raised]="true" (onClick)="storePasswordWithBiometrics($event)">
       {{"Yes" | transloco}}
     </p-button>
