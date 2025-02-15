@@ -127,10 +127,10 @@ impl TryFrom<&str> for Service {
     fn try_from(url: &str) -> Result<Self, Self::Error> {
         match TOTP::from_url(url) {
             Ok(totp) => return Service::try_from(totp),
-            Err(err) => {
+            Err(_) => {
                 match TOTP::from_url_unchecked(url) {
                     Ok(totp) => return Service::try_from(totp),
-                    Err(err) => {
+                    Err(_) => {
                         return Err("Couldn't parse the provided URL as a TOTP URL");
                     }
                 }
@@ -141,7 +141,7 @@ impl TryFrom<&str> for Service {
 
 impl ServiceToken for Service {
     fn current_totp(&self) -> Result<TotpToken, Error> {
-        let mut totp;
+        let totp;
         match TOTP::new(
             self.algorithm,
             self.digits,
@@ -183,6 +183,7 @@ pub struct Storage {
     services: ServiceMap,
     signing_key: Vec<u8>,
     file_path: String,
+    key_access_pass: String,
 }
 
 impl Storage {
@@ -201,6 +202,7 @@ impl Storage {
             services: HashMap::new(),
             signing_key: key,
             file_path: file_path_str,
+            key_access_pass: String::new(),
         }
     }
 
@@ -261,6 +263,14 @@ impl Storage {
 
     pub fn update_service(&mut self, service: Service) {
         self.services.insert(service.id.clone(), service);
+    }
+
+    pub fn set_key_access_pass(&mut self, code: String) {
+        self.key_access_pass = code;
+    }
+
+    pub fn get_key_access_pass(&self) -> String {
+        self.key_access_pass.clone()
     }
 }
 

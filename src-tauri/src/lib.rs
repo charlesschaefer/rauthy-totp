@@ -9,6 +9,7 @@ mod state;
 mod storage;
 mod totp;
 mod brandfetch;
+mod biometric;
 
 #[cfg(mobile)]
 const IS_MOBILE: bool = true;
@@ -45,7 +46,9 @@ pub fn run() {
             commands::add_service,
             commands::setup_storage_keys,
             commands::get_services_tokens,
-            commands::update_service
+            commands::update_service,
+            #[cfg(mobile)]
+            commands::fetch_without_pass,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

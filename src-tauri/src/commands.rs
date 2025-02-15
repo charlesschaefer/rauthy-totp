@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 use tauri::State;
+use tauri_plugin_biometric::BiometricExt;
 
 use crate::crypto::*;
 use crate::state::AppState;
 use crate::storage::*;
 use crate::totp::*;
+use crate::biometric::*;
 
 #[tauri::command]
 pub fn setup_storage_keys(
@@ -47,7 +49,7 @@ pub fn add_service(
             let services = state.storage.services().clone();
             return Ok(services);
         },
-        Err(err) => {
+        Err(_) => {
             return Ok(std::collections::HashMap::new());
         }
     }
@@ -90,4 +92,42 @@ pub fn update_service(
     state.storage.save_to_file()?;
 
     Ok(())
+}
+
+
+//#[cfg(mobile)] 
+#[tauri::command]
+pub fn fetch_without_pass(
+    app_state: State<'_, Mutex<AppState>>,
+    app_handle: tauri::AppHandle,
+    reason: String,
+    options: AuthOptions
+) -> Result<ServiceMap, Error> {
+
+    let mut state = app_state.lock().unwrap();
+    match app_handle.biometric().biometric_cipher(reason, options.try_into().unwrap()) {
+        Ok(data) => {
+            state.storage.set_key_access_pass(data.data)
+        },
+        Err(_) => {
+            dbg!("Can't load biometric decrypted data.");
+        }
+    }
+
+    let key = derive_key_from_password(state.storage.get_key_access_pass().as_str())?;
+    let mut storage = Storage::new(key.to_vec());
+    storage.set_base_path(state.storage_path.clone());
+
+    if storage.file_exists() {
+        match storage.read_from_file() {
+            Err(_) => return Err("Couldn't decrypt the storage file"),
+            Ok(_) => {}
+        }
+    }
+    
+    state.storage = storage;
+
+    let services = state.storage.services().clone();
+    println!("Services: {:?}", services);
+    Ok(services)
 }

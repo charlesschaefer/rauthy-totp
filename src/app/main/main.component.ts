@@ -22,6 +22,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { NgxSwipeMenuComponent, SwipeMenuActions } from 'ngx-swipe-menu';
 import { ServiceAddComponent } from './service-add/service-add.component';
 import { ServiceEditComponent } from './service-edit/service-edit.component';
+import { checkStatus } from '@tauri-apps/plugin-biometric';
 
 import { TotpService } from '../services/totp.service';
 import { Service } from '../models/service.model';
@@ -72,7 +73,9 @@ export class MainComponent implements OnInit {
     askForPasswordStorage = signal(false);
     loadingServices = signal(false);
     showEditDialog = signal(false);
+
     selectedService?: Service;
+    isBiometricAble = false;
 
     encryptedPassword = "";
 
@@ -106,10 +109,17 @@ export class MainComponent implements OnInit {
         private localStorage: LocalStorageService
     ) { }
 
-    ngOnInit(): void {
-        if (this.localStorage.hasItem('encryptedPassword')) {
-            this.encryptedPassword = this.localStorage.getItem('encryptedPassword') as string;
-            this.fetchWithoutPassword();
+    async ngOnInit() {
+        const hasBiometrics = await checkStatus();
+        if (hasBiometrics.isAvailable) {
+            this.isBiometricAble = true;
+            if (this.localStorage.hasItem('encryptedPassword')) {
+                this.loadingServices.set(true);
+                this.encryptedPassword = this.localStorage.getItem('encryptedPassword') as string;
+                this.fetchWithoutPassword();
+            }
+        } else {
+            this.isBiometricAble = false;
         }
     }
 
@@ -127,7 +137,8 @@ export class MainComponent implements OnInit {
                         this.showTokens();
                     }
                     
-                    if (isMobile() && !this.localStorage.hasItem('encryptedPassword')) {
+                    // Shows only on mobiles with biometrics activated.
+                    if (isMobile() && this.isBiometricAble && !this.localStorage.hasItem('encryptedPassword')) {
                         this.askForPasswordStorage.set(true);
                     }
                 },
@@ -222,6 +233,9 @@ export class MainComponent implements OnInit {
             ...options,
             dataToEncrypt: password
         });
+        
+        // closes the dialog
+        this.askForPasswordStorage.set(false);
 
         console.log("Encrypted Data: ", encryptedData);
         this.encryptedPassword = encryptedData.data;
