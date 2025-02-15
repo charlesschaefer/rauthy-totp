@@ -35,6 +35,6 @@ minreq = { version = "2.13.0", features = ["https"] }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-barcode-scanner = "2"
-tauri-plugin-biometric = { path = "..\\..\\tauri-plugins-workspace\\plugins\\biometric", version = "2" }
+tauri-plugin-biometric = { git = "https://github.com/charlesschaefer/tauri-plugins-workspace.git", branch = "v2" }
 
 #[build]

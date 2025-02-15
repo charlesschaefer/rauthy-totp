@@ -2,7 +2,7 @@ use minreq;
 use serde::{Deserialize};
 
 
-#[derive(Debug, Deserialize)] #[allow(non_snake_case)]
+#[derive(Debug, Deserialize)] #[allow(non_snake_case, unused)]
 pub struct Brand {
     pub brandId: String,
     pub claimed: bool,

@@ -3509,6 +3509,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-biometric"
 version = "2.2.0"
+source = "git+https://github.com/charlesschaefer/tauri-plugins-workspace.git?branch=v2#779c7cd8f6355519132ed7aa97e1e7c0a742cef9"
 dependencies = [
  "log",
  "serde",

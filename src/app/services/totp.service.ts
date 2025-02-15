@@ -32,6 +32,27 @@ export class TotpService {
         return this.services.asObservable();
     }
 
+    fetchServicesWithoutPassword(encryptedData: string, options: {[key:string]: any}) {
+        const {reason, ...otherOptions} = {...options};
+        otherOptions["dataToDecrypt"] = encryptedData;
+
+        invoke<Map<string, Service>>("fetch_without_pass", {
+            reason,
+            options: otherOptions
+        }).then(services => {
+            this.setupServices(services);
+            this.services.next(this.servicesContent);
+        }).catch(error => {
+            this.services.error(error);
+            this.services.complete();
+            this.services = new Subject<typeof this.servicesContent>();
+        });
+
+        return this.services.asObservable();
+
+        
+    }
+
     addService(totpUri: string): Observable<Map<string, Service>> {
         invoke<object>('add_service', { totpUri }).then(services => {
             this.setupServices(services);

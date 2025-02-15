@@ -103,13 +103,12 @@ pub fn fetch_without_pass(
     reason: String,
     options: AuthOptions
 ) -> Result<ServiceMap, Error> {
-
     let mut state = app_state.lock().unwrap();
     match app_handle.biometric().biometric_cipher(reason, options.try_into().unwrap()) {
         Ok(data) => {
             state.storage.set_key_access_pass(data.data)
         },
-        Err(_) => {
+        Err(err) => {
             dbg!("Can't load biometric decrypted data.");
         }
     }
@@ -125,9 +124,7 @@ pub fn fetch_without_pass(
         }
     }
     
+    let services = storage.services().clone();
     state.storage = storage;
-
-    let services = state.storage.services().clone();
-    println!("Services: {:?}", services);
-    Ok(services)
+    Ok(services.clone())
 }

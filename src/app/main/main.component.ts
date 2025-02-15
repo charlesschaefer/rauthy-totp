@@ -79,27 +79,6 @@ export class MainComponent implements OnInit {
 
     encryptedPassword = "";
 
-    actionList = [
-        {
-            name: 'edit',
-            label: 'Edit',
-            class: '',
-            data: 'treta',
-            onClick(_event: any, data: any) {
-                console.log("Editando o item, Dados: ", data);
-            }
-        },
-        {
-            name: 'delete',
-            label: 'Delete',
-            class: '',
-            data: 'treta',
-            onClick(_event: any, data: any) {
-                console.log("Removendo o item, Dados: ", data);
-            }
-        }
-    ] as SwipeMenuActions[];
-
     constructor(
         private totpService: TotpService,
         private translate: TranslocoService,
@@ -237,16 +216,14 @@ export class MainComponent implements OnInit {
         // closes the dialog
         this.askForPasswordStorage.set(false);
 
-        console.log("Encrypted Data: ", encryptedData);
         this.encryptedPassword = encryptedData.data;
         this.localStorage.setItem("encryptedPassword", this.encryptedPassword);
         this.askForPasswordStorage.set(false);
     }
 
-    async fetchWithoutPassword() {
-        console.log("Entrou no fetchWithoutPassword");
-        const encryptedData = this.encryptedPassword;
-        
+    fetchWithoutPassword() {
+        this.loadingServices.set(true);
+
         const options = {
             // Set true if you want the user to be able to authenticate using phone password
             allowDeviceCredential: false,
@@ -254,19 +231,33 @@ export class MainComponent implements OnInit {
 
             // Android only features
             title: 'Open services without password',
-            subtitle: ''
+            subtitle: '',
+            reason: "Open service files without password",
         };
 
-        const originalPass = await invoke<{data: string}>('plugin:biometric|biometric_cipher', {
-            reason: "Open service files without password",
-            ...options,
-            dataToDecrypt: encryptedData
+        const subscription = this.totpService.fetchServicesWithoutPassword(this.encryptedPassword, options).subscribe({
+            next: (services) => {
+                subscription.unsubscribe();
+                this.loadingServices.set(false);
+                
+                this.totpItems = services;
+    
+                if (services.size === 0) {
+                    this.showDialog.set(true);
+                } else {
+                    this.showTokens();
+                }
+            },
+            error: (error) => {
+                this.loadingServices.set(false);
+                subscription.unsubscribe();
+                this.messageService.add({
+                    summary: this.translate.translate("Error trying to open the services file"),
+                    detail: this.translate.translate("Couldn't open the services file: ") + error,
+                    severity: 'error',
+                })
+            }
         });
-
-        console.log("Original pass: ", originalPass.data);
-
-        this.form.patchValue({"password": originalPass.data});
-        this.onSubmit(true);
     }
 
     private calculateTokenDuration(intervalSubscription: Subscription | null) {
