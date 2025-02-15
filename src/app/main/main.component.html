@@ -2,7 +2,9 @@
   <div class="flex flex-column">
     <!-- <div></div> -->
     @if (loadingServices()) {
-      <p-progress-spinner ariaLabel="loading" />
+      <div class="progress-spiner">
+        <p-progress-spinner ariaLabel="loading" />
+      </div>
     }
     @if (!totpItems.size) {
     <form [formGroup]="form" class="flex flex-grow-1 flex-column align-items-center" (ngSubmit)="onSubmit()">
