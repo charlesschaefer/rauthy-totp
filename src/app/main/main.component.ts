@@ -29,6 +29,7 @@ import { TotpToken } from '../models/token.model';
 import { invoke } from '@tauri-apps/api/core';
 import { LocalStorageService } from '../services/local-storage.service';
 import { ServiceListComponent } from './service-list/service-list.component';
+import { isMobile } from '../utils/platform';
 
 @Component({
     selector: 'app-main',
@@ -126,7 +127,7 @@ export class MainComponent implements OnInit {
                         this.showTokens();
                     }
                     
-                    if (!this.localStorage.hasItem('encryptedPassword')) {
+                    if (isMobile() && !this.localStorage.hasItem('encryptedPassword')) {
                         this.askForPasswordStorage.set(true);
                     }
                 },

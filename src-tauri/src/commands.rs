@@ -39,18 +39,17 @@ pub fn add_service(
     totp_uri: &str,
 ) -> Result<ServiceMap, ()> {
     let mut state = app_state.lock().unwrap();
-
-    if let Ok(service) = Service::try_from(totp_uri) {
-        state.storage.add_service(service);
-        state.storage.save_to_file()?;
-
-        let services = state.storage.services().clone();
-        // println!("Services: {:?}", services);
-
-        return Ok(services);
-    } else {
-        // println!("Couldn't create a service from the url");
-        return Ok(std::collections::HashMap::new());
+    match Service::try_from(totp_uri)  {
+        Ok(service) => {
+            state.storage.add_service(service);
+            state.storage.save_to_file()?;
+    
+            let services = state.storage.services().clone();
+            return Ok(services);
+        },
+        Err(err) => {
+            return Ok(std::collections::HashMap::new());
+        }
     }
 }
 

@@ -125,17 +125,24 @@ impl TryFrom<&str> for Service {
     type Error = Error;
 
     fn try_from(url: &str) -> Result<Self, Self::Error> {
-        if let Ok(totp) = TOTP::from_url(url) {
-            return Service::try_from(totp);
-        } else {
-            return Err("Couldn't parse the provided URL as a TOTP URL");
+        match TOTP::from_url(url) {
+            Ok(totp) => return Service::try_from(totp),
+            Err(err) => {
+                match TOTP::from_url_unchecked(url) {
+                    Ok(totp) => return Service::try_from(totp),
+                    Err(err) => {
+                        return Err("Couldn't parse the provided URL as a TOTP URL");
+                    }
+                }
+            }
         }
     }
 }
 
 impl ServiceToken for Service {
     fn current_totp(&self) -> Result<TotpToken, Error> {
-        let totp = TOTP::new(
+        let mut totp;
+        match TOTP::new(
             self.algorithm,
             self.digits,
             1,
@@ -143,8 +150,21 @@ impl ServiceToken for Service {
             Secret::Encoded(self.secret.clone()).to_bytes().unwrap(),
             Some(self.issuer.clone()),
             self.name.clone(),
-        )
-        .unwrap();
+        ) {
+            Err(err) => {
+                dbg!("Error trying to create normal TOTP. We'll try to create unchecked", err);
+                totp = TOTP::new_unchecked(
+                    self.algorithm,
+                    self.digits,
+                    1,
+                    self.period,
+                    Secret::Encoded(self.secret.clone()).to_bytes().unwrap(),
+                    Some(self.issuer.clone()),
+                    self.name.clone(),
+                );
+            }
+            Ok(_totp) => totp = _totp
+        }
 
         match totp.generate_current() {
             Ok(token) => Ok(TotpToken {

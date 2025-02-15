@@ -1,7 +1,8 @@
 use minreq;
 use serde::{Deserialize};
 
-#[derive(Debug, Deserialize)]
+
+#[derive(Debug, Deserialize)] #[allow(non_snake_case)]
 pub struct Brand {
     pub brandId: String,
     pub claimed: bool,
