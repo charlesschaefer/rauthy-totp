@@ -63,7 +63,7 @@ li {
         }
 
         &:active {
-            border-radius: 10px 0 0 10px;
+            border-radius: 0;//10px 0 0 10px;
         }
     }
     
@@ -73,7 +73,7 @@ li {
         border-radius: 10px;
 
         &.open .ngx-swipe-menu-content {
-            border-radius: 10px 0 0 10px;
+            border-radius: 0;//10px 0 0 10px;
         }
 
         .ng-swipe-right-actions-container {
