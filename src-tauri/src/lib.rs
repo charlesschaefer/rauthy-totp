@@ -30,6 +30,13 @@ pub fn run() {
             let mut state = app_state.lock().unwrap();
             state.storage_path = path;
 
+            #[cfg(debug_assertions)] // only include this code on debug builds
+            {
+              let window = app.get_webview_window("main").unwrap();
+              window.open_devtools();
+              //window.close_devtools();
+            }
+
             Ok(())
         });
 
