@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 use tauri::State;
-use tauri_plugin_biometric::BiometricExt;
+
 
 use crate::crypto::*;
 use crate::state::AppState;
@@ -95,14 +95,14 @@ pub fn update_service(
 }
 
 
-//#[cfg(mobile)] 
-#[tauri::command]
+#[cfg(mobile)] #[tauri::command]
 pub fn fetch_without_pass(
     app_state: State<'_, Mutex<AppState>>,
     app_handle: tauri::AppHandle,
     reason: String,
     options: AuthOptions
 ) -> Result<ServiceMap, Error> {
+    use tauri_plugin_biometric::BiometricExt;
     let mut state = app_state.lock().unwrap();
     match app_handle.biometric().biometric_cipher(reason, options.try_into().unwrap()) {
         Ok(data) => {

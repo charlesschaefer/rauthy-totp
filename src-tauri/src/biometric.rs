@@ -21,6 +21,7 @@ pub struct AuthOptions {
     pub confirmation_required: Option<bool>,
 }
 
+#[cfg(mobile)]
 impl TryInto<tauri_plugin_biometric::AuthOptions> for AuthOptions {
     type Error = &'static str;
 
