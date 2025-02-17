@@ -96,6 +96,17 @@ pub fn update_service(
 }
 
 
+#[tauri::command]
+pub fn delete_service(app_state: State<'_, Mutex<AppState>>, service_id: String) -> Result<(), String> {
+    let mut state = app_state.lock().unwrap();
+    if state.storage.remove_service(service_id) {
+        state.storage.save_to_file().map_err(|_| "Failed to save storage".to_string())?;
+        Ok(())
+    } else {
+        Err("Service not found".to_string())
+    }
+}
+
 #[cfg(mobile)] #[tauri::command]
 pub fn fetch_without_pass(
     app_state: State<'_, Mutex<AppState>>,

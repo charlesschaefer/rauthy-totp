@@ -317,6 +317,7 @@ export class MainComponent implements OnInit {
         if (this.serviceToDelete) {
             const subscription = this.totpService.deleteService(this.serviceToDelete.id).subscribe({
                 next: () => {
+                    this.serviceToDelete?.id ? this.totpItems.delete(this.serviceToDelete.id) : undefined;
                     this.messageService.add({
                         severity: 'success',
                         summary: this.translate.translate('Service Deleted'),

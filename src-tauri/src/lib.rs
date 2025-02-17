@@ -40,8 +40,8 @@ pub fn run() {
 
             #[cfg(debug_assertions)] // only include this code on debug builds
             {
-              let window = app.get_webview_window("main").unwrap();
-              window.open_devtools();
+              //let window = app.get_webview_window("main").unwrap();
+              //window.open_devtools();
               //window.close_devtools();
             }
 
@@ -62,6 +62,7 @@ pub fn run() {
             commands::setup_storage_keys,
             commands::get_services_tokens,
             commands::update_service,
+            commands::delete_service,
             #[cfg(mobile)]
             commands::fetch_without_pass,
         ])
