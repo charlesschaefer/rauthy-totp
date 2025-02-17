@@ -10,6 +10,8 @@ mod storage;
 mod totp;
 mod brandfetch;
 mod biometric;
+#[cfg(desktop)]
+mod desktop;
 
 #[cfg(mobile)]
 const IS_MOBILE: bool = true;
@@ -20,6 +22,12 @@ pub fn run() {
     builder = builder
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
+            #[cfg(desktop)]
+            {
+                desktop::setup_system_tray_icon(app);
+            }
+
+
             app.manage(Mutex::new(state::AppState::default()));
             let path = app.path().app_local_data_dir().expect("Couldn't resolve app local data dir");//.join("Rauthy.bin");
             let scope = app.fs_scope();

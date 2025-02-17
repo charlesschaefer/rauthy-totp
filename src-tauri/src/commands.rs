@@ -7,6 +7,7 @@ use crate::crypto::*;
 use crate::state::AppState;
 use crate::storage::*;
 use crate::totp::*;
+#[cfg(mobile)]
 use crate::biometric::*;
 
 #[tauri::command]
