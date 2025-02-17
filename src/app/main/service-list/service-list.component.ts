@@ -50,9 +50,8 @@ export class ServiceListComponent {
             name: 'delete',
             label: 'Delete',
             class: '',
-            data: 'treta',
-            onClick(_event: any, data: any) {
-                console.log("Removendo o item, Dados: ", data);
+            onClick: (_event: any, data: any) => {
+                this.deleteService.emit(data);
             }
         }
     ] as SwipeMenuActions[];

@@ -96,4 +96,8 @@ export class TotpService {
     updateService(service: Service): Observable<void> {
         return from(invoke<void>('update_service', { service }));
     }
+
+    deleteService(serviceId: number | string): Observable<void> {
+        return from(invoke<void>('delete_service', { serviceId }));
+    }
 } 

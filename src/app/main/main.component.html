@@ -30,6 +30,7 @@
         (addService)="showDialog.set(true)"
         (copyToken)="copyToken($event)"
         (editService)="editService($event)"
+        (deleteService)="deleteService($event)"
       />
     }
 
@@ -47,6 +48,14 @@
   [service]="selectedService"
   (serviceEdited)="onServiceEdit($event)"
 />
+
+<app-service-delete
+  [(visible)]="showDeleteDialog"
+  (confirmDelete)="confirmDeleteService()"
+  (cancelDelete)="cancelDeleteService()"
+/>
+
+
 
 <p-dialog [(visible)]="askForPasswordStorage" header="Login with fingerprint?" [modal]="true" #loginBiometrics>
   <p>

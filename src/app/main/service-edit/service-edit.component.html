@@ -1,4 +1,4 @@
-<p-dialog [(visible)]="visible" [header]="'Edit Service' | transloco" [modal]="true">
+<p-dialog [(visible)]="visible" [header]="'Edit Service' | transloco" [modal]="true" (onHide)="onHide()">
     <form [formGroup]="editForm" (ngSubmit)="onSubmit()" class="flex flex-column gap-3">
         <div class="flex flex-column gap-2">
             <label for="name">{{"Service Name" | transloco}}</label>

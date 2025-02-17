@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, computed, inject, input, model, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
@@ -25,7 +25,7 @@ import { Service } from '../../models/service.model';
 export class ServiceEditComponent {
     private fb = inject(FormBuilder);
 
-    @Input() visible = false;
+    visible = model(false);
     @Input() service?: Service;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() serviceEdited = new EventEmitter<{id: string, name: string, issuer: string}>();
@@ -50,8 +50,14 @@ export class ServiceEditComponent {
                 id: this.service.id,
                 ...this.editForm.value
             } as {id: string, name: string, issuer: string});
-            this.visible = false;
+            this.visible.set(false);
             this.visibleChange.emit(false);
         }
+    }
+
+    onHide() {
+        this.visible.update(old => false);
+        this.visibleChange.emit(false);
+        console.log('treta cabulosa')
     }
 }

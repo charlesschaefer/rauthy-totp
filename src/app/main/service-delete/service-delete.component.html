@@ -1,0 +1,12 @@
+<p-dialog [(visible)]="visible" [modal]="true" [closable]="false" [dismissableMask]="true">
+    <ng-template pTemplate="header">
+        {{ 'Delete Service' | transloco }}
+    </ng-template>
+    <ng-template pTemplate="content">
+        <p>{{ 'Are you sure you want to delete the service' | transloco }} <strong>{{ serviceName }}</strong>?</p>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button pButton type="button" label="{{ 'Cancel' | transloco }}" icon="pi pi-times" (click)="onCancel()"></button>
+        <button pButton type="button" label="{{ 'Delete' | transloco }}" icon="pi pi-check" (click)="onConfirm()"></button>
+    </ng-template>
+</p-dialog>

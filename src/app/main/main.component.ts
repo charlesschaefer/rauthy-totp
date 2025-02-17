@@ -19,7 +19,6 @@ import { AvatarModule } from 'primeng/avatar';
 import { RippleModule } from 'primeng/ripple';
 import { AutoFocusModule } from 'primeng/autofocus';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { NgxSwipeMenuComponent, SwipeMenuActions } from 'ngx-swipe-menu';
 import { ServiceAddComponent } from './service-add/service-add.component';
 import { ServiceEditComponent } from './service-edit/service-edit.component';
 import { checkStatus } from '@tauri-apps/plugin-biometric';
@@ -31,6 +30,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { LocalStorageService } from '../services/local-storage.service';
 import { ServiceListComponent } from './service-list/service-list.component';
 import { isMobile } from '../utils/platform';
+import { ServiceDeleteComponent } from "./service-delete/service-delete.component";
 
 @Component({
     selector: 'app-main',
@@ -38,25 +38,26 @@ import { isMobile } from '../utils/platform';
     templateUrl: './main.component.html',
     styleUrls: ['./main.component.scss'],
     imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        FormsModule,
-        DialogModule,
-        ButtonModule,
-        CardModule,
-        InputTextModule,
-        TranslocoModule,
-        ToastModule,
-        MatListModule,
-        KnobModule,
-        AvatarModule,
-        RippleModule,
-        AutoFocusModule,
-        ProgressSpinnerModule,
-        ServiceAddComponent,
-        ServiceListComponent,
-        ServiceEditComponent
-    ],
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    DialogModule,
+    ButtonModule,
+    CardModule,
+    InputTextModule,
+    TranslocoModule,
+    ToastModule,
+    MatListModule,
+    KnobModule,
+    AvatarModule,
+    RippleModule,
+    AutoFocusModule,
+    ProgressSpinnerModule,
+    ServiceAddComponent,
+    ServiceListComponent,
+    ServiceEditComponent,
+    ServiceDeleteComponent
+],
     providers: []
 })
 export class MainComponent implements OnInit {
@@ -73,8 +74,10 @@ export class MainComponent implements OnInit {
     askForPasswordStorage = signal(false);
     loadingServices = signal(false);
     showEditDialog = signal(false);
+    showDeleteDialog = signal(false);
 
     selectedService?: Service;
+    serviceToDelete?: Service;
     isBiometricAble = false;
 
     encryptedPassword = "";
@@ -304,4 +307,48 @@ export class MainComponent implements OnInit {
         this.selectedService = service;
         this.showEditDialog.set(true);
     }
-} 
+
+    deleteService(service: Service) {
+        this.serviceToDelete = service;
+        this.showDeleteDialog.set(true);
+    }
+
+    confirmDeleteService() {
+        if (this.serviceToDelete) {
+            const subscription = this.totpService.deleteService(this.serviceToDelete.id).subscribe({
+                next: () => {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: this.translate.translate('Service Deleted'),
+                        detail: this.translate.translate('Service deleted successfully!')
+                    });
+                    this.showDeleteDialog.set(false);
+                    this.serviceToDelete = undefined;
+                    this.showTokens();
+                },
+                error: (error) => {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: this.translate.translate('Delete Error'),
+                        detail: this.translate.translate('Could not delete service: ') + error
+                    });
+                }
+            });
+        }
+    }
+
+    cancelDeleteService() {
+        this.showDeleteDialog.set(false);
+        this.serviceToDelete = undefined;
+    }
+
+    hideAskForPassStorage() {
+        console.log("Vamos esconder")
+        this.askForPasswordStorage.set(false)
+    }
+
+    showEditDialogChange(value: boolean) {
+        this.showEditDialog.set(value)
+        console.log("Passando pela mudança ")
+    }
+}
