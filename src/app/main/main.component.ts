@@ -79,6 +79,7 @@ export class MainComponent implements OnInit {
     selectedService?: Service;
     serviceToDelete?: Service;
     isBiometricAble = false;
+    isMobile = isMobile();
 
     encryptedPassword = "";
 
@@ -120,7 +121,7 @@ export class MainComponent implements OnInit {
                     }
                     
                     // Shows only on mobiles with biometrics activated.
-                    if (isMobile() && this.isBiometricAble && !this.localStorage.hasItem('encryptedPassword')) {
+                    if (this.isMobile && this.isBiometricAble && !this.localStorage.hasItem('encryptedPassword')) {
                         this.askForPasswordStorage.set(true);
                     }
                 },

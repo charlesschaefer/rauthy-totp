@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
@@ -25,6 +25,7 @@ import { TranslocoModule } from '@jsverse/transloco';
 export class ServiceAddComponent {
     private fb = inject(FormBuilder);
 
+    @Input() isMobile = false;
     @Input() visible = false;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() onScanQRCode = new EventEmitter<void>();

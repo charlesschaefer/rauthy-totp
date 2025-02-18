@@ -1,4 +1,4 @@
-export function isMobile(): Boolean {
+export function isMobile(): boolean {
     const toMatch = [
         /Android/i,
         /webOS/i,

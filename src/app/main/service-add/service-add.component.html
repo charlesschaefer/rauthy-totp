@@ -3,7 +3,7 @@
     {{"Choose to scan a QR code or paste a string to add a new service." | transloco}}
   </p>
   <div class="flex" *ngIf="!showURLInput()">
-    <p-button severity="info" variant="text" [raised]="true" (onClick)="scanQRCode()">
+    <p-button severity="info" variant="text" [raised]="true" (onClick)="scanQRCode()" *ngIf="isMobile">
       {{"Scan QRCode" | transloco}}
     </p-button>
     <p-button severity="help" variant="text" [raised]="true" (onClick)="showURLInput.set(true)">

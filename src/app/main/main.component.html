@@ -39,6 +39,7 @@
 
 <app-service-add 
   [(visible)]="showDialog"
+  [isMobile]="isMobile"
   (onScanQRCode)="scanQRCode($event)"
   (serviceUrlAdded)="onSubmitServiceUrl($event)"
 />
