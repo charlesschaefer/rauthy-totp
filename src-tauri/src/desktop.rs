@@ -7,6 +7,8 @@ use tauri::{
 #[cfg(desktop)]
 pub fn setup_system_tray_icon(app: &mut App) {
     // creates the tray icon menu
+
+    use tauri::{menu::ContextMenu, window::ProgressBarState};
     let item_show = MenuItem::new(app, "Show/Hide", true, Some("S")).unwrap();
     let item_quit = MenuItem::new(app, "Quit", true, Some("Q")).unwrap();
     let menu = MenuBuilder::new(app)
@@ -23,13 +25,13 @@ pub fn setup_system_tray_icon(app: &mut App) {
             window_hider.hide().unwrap();
         }
     });
-
+    let menu2 = menu.clone();
     // creates the tray icon
-    let _ = TrayIconBuilder::new()
+    let tray = TrayIconBuilder::new()
         .tooltip("Rauthy TOTP")
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
-        .on_tray_icon_event(|tray_icon, event| match event {
+        .on_tray_icon_event(move |tray_icon, event| match event {
             TrayIconEvent::Click {
                 id: _,
                 position: _,
@@ -46,8 +48,20 @@ pub fn setup_system_tray_icon(app: &mut App) {
                     dbg!("system tray received a middle or right click");
                 }
             },
-            _ => {
-                dbg!("system tray received an unknow event");
+            TrayIconEvent::Enter { id: _, position, rect: _  } => {
+                dbg!("system tray received a move ");
+                let window = tray_icon.app_handle().get_webview_window("main").unwrap();
+                window.popup_menu(&menu2).unwrap();
+                //let esq = tray_icon.app_handle().menu().unwrap().popup_at(window.into(), position);
+            },
+            TrayIconEvent::Leave { id: _, position, rect: _  } => {
+                dbg!("system tray received a move ");
+                let window = tray_icon.app_handle().get_webview_window("main").unwrap();
+                window.hide_menu().unwrap();
+                //let esq = tray_icon.app_handle().menu().unwrap().popup_at(window.into(), position);
+            },
+            err => {
+                dbg!("system tray received an unknow event", err);
             }
         })
         .on_menu_event(move |app, event| {
@@ -64,5 +78,6 @@ pub fn setup_system_tray_icon(app: &mut App) {
                 }
             }
         })
-        .build(app);
+        .build(app)
+        .unwrap();
 }
