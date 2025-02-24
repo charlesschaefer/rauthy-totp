@@ -95,7 +95,6 @@ pub fn update_service(
     Ok(())
 }
 
-
 #[tauri::command]
 pub fn delete_service(app_state: State<'_, Mutex<AppState>>, service_id: String) -> Result<(), String> {
     let mut state = app_state.lock().unwrap();
@@ -120,7 +119,7 @@ pub fn fetch_without_pass(
         Ok(data) => {
             state.storage.set_key_access_pass(data.data)
         },
-        Err(err) => {
+        Err(_) => {
             dbg!("Can't load biometric decrypted data.");
         }
     }
