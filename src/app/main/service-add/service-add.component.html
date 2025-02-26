@@ -1,21 +1,32 @@
-<p-dialog [(visible)]="visible" header="Add Service" [modal]="true">
-  <p>
-    {{"Choose to scan a QR code or paste a string to add a new service." | transloco}}
-  </p>
-  <div class="flex" *ngIf="!showURLInput()">
-    <p-button severity="info" variant="text" [raised]="true" (onClick)="scanQRCode()" *ngIf="isMobile">
-      {{"Scan QRCode" | transloco}}
-    </p-button>
-    <p-button severity="help" variant="text" [raised]="true" (onClick)="showURLInput.set(true)">
-      {{"Paste URL" | transloco}}
-    </p-button>
-  </div>
-  <ng-container *ngIf="showURLInput()">
-    <p-card [header]="'Add service by URL' | transloco">
-      <form [formGroup]="urlInput" (ngSubmit)="onSubmitServiceUrl()">
-        <input type="text" pInputText formControlName="serviceUrl" [placeholder]="'Paste here the URL your service provided' | transloco" />
-        <button type="submit" pButton severity="info">{{"Add Service" | transloco}}</button>
-      </form>
-    </p-card>
-  </ng-container>
-</p-dialog>
+@if (scanning()) {
+  <div class="scanningQRCode"></div>
+}
+
+<div class="service-add-content" [class.hidden]="scanning()">
+  <p-dialog [(visible)]="visible" header="Add Service" [modal]="true">
+    <p>
+      {{"Choose to scan a QR code or paste a string to add a new service." | transloco}}
+    </p>
+    <div class="flex" *ngIf="!showURLInput()">
+      <p-button severity="info" variant="text" [raised]="true" (onClick)="scanQRCode()" *ngIf="isMobile">
+        {{"Scan QRCode" | transloco}}
+      </p-button>
+      <p-button severity="help" variant="text" [raised]="true" (onClick)="showURLInput.set(true)">
+        {{"Paste URL" | transloco}}
+      </p-button>
+    </div>
+    <ng-container *ngIf="showURLInput()">
+      <p-card [header]="'Add service by URL' | transloco">
+        <form [formGroup]="urlInput" (ngSubmit)="onSubmitServiceUrl()">
+          <input type="text" pInputText formControlName="serviceUrl" [placeholder]="'Paste here the URL your service provided' | transloco" />
+          <button type="submit" pButton severity="info">{{"Add Service" | transloco}}</button>
+        </form>
+      </p-card>
+    </ng-container>
+  </p-dialog>
+</div>
+
+<div class="overlay" *ngIf="scanning()">
+  <p-button icon="pi pi-arrow-left" styleClass="p-button-rounded p-button-text back-button" (click)="cancelScan()" size="large"></p-button>
+  <div class="scan-area"></div>
+</div>

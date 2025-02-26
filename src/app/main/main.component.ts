@@ -104,6 +104,10 @@ export class MainComponent implements OnInit {
         } else {
             this.isBiometricAble = false;
         }
+
+
+        // Testing QRCode GUI
+        //this.scanQRCode(null);
     }
 
     async onSubmit(internal: boolean = false) {
@@ -164,6 +168,7 @@ export class MainComponent implements OnInit {
                     detail: this.translate.translate("QRCode scanning returned no content!"),
                     severity: 'error',
                 });
+                this.showDialog.set(true);
                 return;
             }
             this.addNewService(scanned.content);
