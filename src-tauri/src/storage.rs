@@ -240,31 +240,27 @@ impl Storage {
         }
     }
 
-       pub fn remove_service(&mut self, id: String) -> bool {
+    pub fn services(&self) -> &ServiceMap {
+        &self.services
+    }
+    
+    pub fn set_base_path(&mut self, path: std::path::PathBuf) {
+        self.file_path = String::from(path.join(STORAGE_FILE).to_str().unwrap());
+    }
+    
+    pub fn add_service(&mut self, service: Service) {
+        self.services.insert(service.id.clone(), service); // Add the new service to the inner vector
+    }
+    
+    pub fn update_service(&mut self, service: Service) {
+        self.services.insert(service.id.clone(), service);
+    }
+    
+    pub fn remove_service(&mut self, id: String) -> bool {
         if let Some(_) = self.services.remove(&id) {
             return true;
         }
         return false;
-    }
-
-    pub fn services(&self) -> &ServiceMap {
-        &self.services
-    }
-
-    pub fn set_base_path(&mut self, path: std::path::PathBuf) {
-        self.file_path = String::from(path.join(STORAGE_FILE).to_str().unwrap());
-    }
-
-    pub fn add_service(&mut self, service: Service) {
-        self.services.insert(service.id.clone(), service); // Add the new service to the inner vector
-    }
-
-    pub fn update_service(&mut self, service: Service) {
-        self.services.insert(service.id.clone(), service);
-    }
-
-    pub fn delete_service(&mut self, id: String) {
-        self.services.remove(&id);
     }
 
     pub fn set_key_access_pass(&mut self, code: String) {

@@ -5,7 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
-import { scan, Format } from '@tauri-apps/plugin-barcode-scanner';
+import { scan, Format, checkPermissions, requestPermissions, openAppSettings } from '@tauri-apps/plugin-barcode-scanner';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
 import { CommonModule } from '@angular/common';
@@ -143,19 +143,37 @@ export class MainComponent implements OnInit {
     }
 
     async scanQRCode(_event: any) {
-        const scanned = await scan({ 
-            windowed: !true, 
-            formats: [Format.QRCode]
-        });
-        if (!scanned.content) {
-            this.messageService.add({
-                summary: this.translate.translate("QRCode Error"),
-                detail: this.translate.translate("QRCode scanning returned no content!"),
-                severity: 'error',
-            });
-            return;
+
+        const authorized = await checkPermissions();
+        if (authorized != "granted") {
+            const requested = await requestPermissions();
+            if (requested != "granted") {
+                await openAppSettings();
+            }
         }
-        this.addNewService(scanned.content);
+
+
+        try {
+            const scanned = await scan({ 
+                windowed: true, 
+                formats: [Format.QRCode]
+            });
+            if (!scanned.content) {
+                this.messageService.add({
+                    summary: this.translate.translate("QRCode Error"),
+                    detail: this.translate.translate("QRCode scanning returned no content!"),
+                    severity: 'error',
+                });
+                return;
+            }
+            this.addNewService(scanned.content);
+        } catch(err) {
+            this.messageService.add({
+                summary: this.translate.translate("Camera access denied"),
+                detail: this.translate.translate("Couldn't open the device camera. You'll need to authorize the app manually") + err,
+                severity: 'error',
+            })
+        }
     }
 
     addNewService(url: string) {
