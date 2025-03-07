@@ -1,36 +1,36 @@
-import { Clipboard } from '@angular/cdk/clipboard';
-import { CommonModule, CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { InputTextModule } from 'primeng/inputtext';
+import { ToastModule } from 'primeng/toast';
+import { scan, Format, checkPermissions, requestPermissions, openAppSettings } from '@tauri-apps/plugin-barcode-scanner';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { MessageService } from 'primeng/api';
+import { CommonModule } from '@angular/common';
+import { interval, Subscription } from 'rxjs';
 import { MatListModule } from '@angular/material/list';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslocoModule, TranslocoModule, TranslocoService, TranslocoService } from '@jsverse/transloco';
-import { checkPermissions, Format, Format, openAppSettings, requestPermissions, scan, scan } from '@tauri-apps/plugin-barcode-scanner';
-import { checkStatus } from '@tauri-apps/plugin-biometric';
-import { DateTime } from 'luxon';
-import { MessageService, MessageService } from 'primeng/api';
-import { AutoFocusModule } from 'primeng/autofocus';
-import { AvatarModule } from 'primeng/avatar';
-import { ButtonModule, ButtonModule } from 'primeng/button';
-import { CardModule, CardModule } from 'primeng/card';
-import { DialogModule, DialogModule } from 'primeng/dialog';
-import { InputTextModule, InputTextModule } from 'primeng/inputtext';
+import { Clipboard } from '@angular/cdk/clipboard';
 import { KnobModule } from 'primeng/knob';
-import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { DateTime } from 'luxon';
+import { AvatarModule } from 'primeng/avatar';
 import { RippleModule } from 'primeng/ripple';
-import { ToastModule, ToastModule } from 'primeng/toast';
-import { interval, interval, Subscription, Subscription } from 'rxjs';
+import { AutoFocusModule } from 'primeng/autofocus';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ServiceAddComponent } from './service-add/service-add.component';
 import { ServiceEditComponent } from './service-edit/service-edit.component';
+import { checkStatus } from '@tauri-apps/plugin-biometric';
 
-import { invoke } from '@tauri-apps/api/core';
+import { TotpService } from '../services/totp.service';
 import { Service } from '../models/service.model';
 import { TotpToken } from '../models/token.model';
+import { invoke } from '@tauri-apps/api/core';
 import { LocalStorageService } from '../services/local-storage.service';
-import { TotpService } from '../services/totp.service';
+import { ServiceListComponent } from './service-list/service-list.component';
 import { isMobile } from '../utils/platform';
 import { ServiceDeleteComponent } from "./service-delete/service-delete.component";
-import { ServiceListComponent } from './service-list/service-list.component';
 
 @Component({
     selector: 'app-main',
@@ -110,7 +110,7 @@ export class MainComponent implements OnInit {
         //this.scanQRCode(null);
     }
 
-    async onSubmit(internal = false) {
+    async onSubmit(internal: boolean = false) {
         if (this.form.valid || internal) {
             this.loadingServices.set(true);
             const subscription = this.totpService.setupStorageKeys(this.form.value.password as string).subscribe({
