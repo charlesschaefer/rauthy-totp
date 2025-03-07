@@ -1,8 +1,8 @@
-@if (scanning()) {
+@if (visible && scanning()) {
   <div class="scanningQRCode"></div>
 }
 
-<div class="service-add-content" [class.hidden]="scanning()">
+<div class="service-add-content" [class.hidden]="!visible || scanning()">
   <p-dialog [(visible)]="visible" header="Add Service" [modal]="true">
     <p>
       {{"Choose to scan a QR code or paste a string to add a new service." | transloco}}

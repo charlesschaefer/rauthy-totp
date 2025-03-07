@@ -27,7 +27,7 @@
         <div class="flex gap-3 justify-content-around align-items-center service-item">
           <div class="flex service-item-logo">
             @if (service.value.icon) {
-              <p-avatar [image]="service.value.icon" size="xlarge" shape="circle" />
+              <p-avatar [image]="service.value.icon" size="xlarge" shape="circle" (onImageError)="onImageError($event, service.value)" />
             } @else {
               <p-avatar [label]="service.value.issuer[0]" size="xlarge" shape="circle" />
             }

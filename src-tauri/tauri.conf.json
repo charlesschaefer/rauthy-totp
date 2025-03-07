@@ -1,12 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "rauthy",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "identifier": "com.rauthy",
   "build": {
     "beforeDevCommand": "npm run start",
     "beforeBuildCommand": "npm run build",
-    "devUrl": "http://192.168.1.8:1420",
+    "devUrl": "http://192.168.1.4:1420",
     "frontendDist": "../dist/rauthy/browser"
   },
   "app": {

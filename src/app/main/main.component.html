@@ -24,7 +24,7 @@
 
     @if (totpItems.size > 0) {
       <app-service-list
-        [totpItems]="totpItems"
+        [(totpItems)]="totpItems"
         [tokensMap]="tokensMap"
         [tokensDuration]="tokensDuration"
         (addService)="showDialog.set(true)"

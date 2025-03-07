@@ -29,6 +29,7 @@ import { FormsModule } from '@angular/forms';
 })
 export class ServiceListComponent {
     @Input() totpItems = new Map<string, Service>();
+    @Output() totpItemsChange = new EventEmitter<Map<string, Service>>();
     @Input() tokensMap = new Map<string, TotpToken>();
     @Input() tokensDuration = new Map<string, number>();
     @Output() addService = new EventEmitter<void>();
@@ -64,5 +65,19 @@ export class ServiceListComponent {
     onSwipeRight(service: Service) {
         console.log("Swipe right")
         this.deleteService.emit(service);
+    }
+
+    onImageError(event: any, service: Service) {
+        console.error("Couldn't load service logo at: ", event.srcElement?.currentSrc);
+        
+        for (let item of this.totpItems) {
+            if (item[1].id == service.id) {
+                item[1].icon = "";
+                this.totpItems.set(item[0], item[1]);
+                break;
+            }
+        }
+
+        this.totpItemsChange.emit(this.totpItems);
     }
 }
