@@ -8,7 +8,6 @@ use tauri::{
 pub fn setup_system_tray_icon(app: &mut App) {
     // creates the tray icon menu
 
-    use tauri::{menu::ContextMenu, window::ProgressBarState};
     let item_show = MenuItem::new(app, "Show/Hide", true, Some("S")).unwrap();
     let item_quit = MenuItem::new(app, "Quit", true, Some("Q")).unwrap();
     let menu = MenuBuilder::new(app)
@@ -27,7 +26,7 @@ pub fn setup_system_tray_icon(app: &mut App) {
     });
     let menu2 = menu.clone();
     // creates the tray icon
-    let tray = TrayIconBuilder::new()
+    let _tray = TrayIconBuilder::new()
         .tooltip("Rauthy TOTP")
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
@@ -48,13 +47,13 @@ pub fn setup_system_tray_icon(app: &mut App) {
                     dbg!("system tray received a middle or right click");
                 }
             },
-            TrayIconEvent::Enter { id: _, position, rect: _  } => {
+            TrayIconEvent::Enter { id: _, position: _, rect: _  } => {
                 dbg!("system tray received a move ");
                 let window = tray_icon.app_handle().get_webview_window("main").unwrap();
                 window.popup_menu(&menu2).unwrap();
                 //let esq = tray_icon.app_handle().menu().unwrap().popup_at(window.into(), position);
             },
-            TrayIconEvent::Leave { id: _, position, rect: _  } => {
+            TrayIconEvent::Leave { id: _, position: _, rect: _  } => {
                 dbg!("system tray received a move ");
                 let window = tray_icon.app_handle().get_webview_window("main").unwrap();
                 window.hide_menu().unwrap();
