@@ -3,15 +3,25 @@
     <h2 class="flex">{{"Available Services" | transloco}}</h2>
     <p-button class="flex align-content-center" variant="text" (onClick)="addService.emit()">{{"Add Service" | transloco}}</p-button>
   </div>
+  <div class="flex flex-row gap-3 justify-content-center">
+      <input type="text" pInputText placeholder="{{'Search' | transloco}}" 
+        [(ngModel)]="searchFilter"
+        aria-label="Search" 
+        aria-describedby="search" 
+        aria-required="false" 
+        aria-invalid="false" 
+        [pAutoFocus]="true"
+      />
+  </div>
   <ul>
-    <li *ngFor="let service of totpItems | keyvalue">
-      <!-- <ngx-swipe-menu [swipeLeftActions]="actionList" [minSwipeDistance]="20" [data]="service.value"> [swipeLeftActionLabel]="'Edit'|transloco" [swipeRightActionLabel]="'Delete'|transloco" -->
+    <li *ngFor="let service of itemList()">
+      <!-- <ngx-swipe-menu [swipeLeftActions]="actionList" [minSwipeDistance]="20" [data]="service"> [swipeLeftActionLabel]="'Edit'|transloco" [swipeRightActionLabel]="'Delete'|transloco" -->
       <ngx-swipe-menu 
         [enableSwipeLeft]="true" [enableSwipeRight]="true"
         swipeLeftActionIcon="pi pi-pencil" swipeRightActionIcon="pi pi-trash"
         [showSwipeLeftActions]="false" [showSwipeRightActions]="false" 
-        (swipeLeftDefaultAction)="onSwipeLeft(service.value)" (swipeRightDefaultAction)="onSwipeRight(service.value)"
-        [data]="service.value"
+        (swipeLeftDefaultAction)="onSwipeLeft(service)" (swipeRightDefaultAction)="onSwipeRight(service)"
+        [data]="service"
       >
         <ng-template #actions>
           <div class="flex flex-row gap-2">
@@ -23,20 +33,20 @@
             </div>
           </div>
         </ng-template>
-        @let token = tokensMap.get(service.value.id)?.token || '';
+        @let token = tokensMap.get(service.id)?.token || '';
         <div class="flex gap-3 justify-content-around align-items-center service-item">
           <div class="flex service-item-logo">
-            @if (service.value.icon) {
-              <p-avatar [image]="service.value.icon" size="xlarge" shape="circle" (onImageError)="onImageError($event, service.value)" />
+            @if (service.icon) {
+              <p-avatar [image]="service.icon" size="xlarge" shape="circle" (onImageError)="onImageError($event, service)" />
             } @else {
-              <p-avatar [label]="service.value.issuer[0]" size="xlarge" shape="circle" />
+              <p-avatar [label]="service.issuer[0]" size="xlarge" shape="circle" />
             }
           </div>
           <div class="flex flex-grow-1 align-items-start service-item-name flex-column">
-            <span class="service-name text-xl">{{ service.value.name }}</span>
-            <span class="service-issuer text-sm">{{ service.value.issuer }}</span>
+            <span class="service-name text-xl">{{ service.name }}</span>
+            <span class="service-issuer text-sm">{{ service.issuer }}</span>
           </div>
-          @if (tokensMap.has(service.value.id)) {
+          @if (tokensMap.has(service.id)) {
             <div class="flex gap-2 align-items-center service-item-token"
               (click)="copyToken.emit(token)" (keypress)="copyToken.emit(token)" aria-hidden="true"
               pRipple
@@ -45,9 +55,9 @@
                 {{ token?.substr(0, 3) }}
                 {{ token?.substr(3) }}
               </strong>
-              @if (tokensDuration.has(service.value.id)) {
+              @if (tokensDuration.has(service.id)) {
                 <span class="flex flex-shrink-1 align-items-center">
-                  <p-knob [readonly]="true" class="flex align-items-center" max="30" min="0" [ngModel]="tokensDuration.get(service.value.id)" size="45" />
+                  <p-knob [readonly]="true" class="flex align-items-center" max="30" min="0" [ngModel]="tokensDuration.get(service.id)" size="45" />
                 </span>
               }
             </div>

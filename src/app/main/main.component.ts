@@ -38,26 +38,26 @@ import { ServiceDeleteComponent } from "./service-delete/service-delete.componen
     templateUrl: './main.component.html',
     styleUrls: ['./main.component.scss'],
     imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    FormsModule,
-    DialogModule,
-    ButtonModule,
-    CardModule,
-    InputTextModule,
-    TranslocoModule,
-    ToastModule,
-    MatListModule,
-    KnobModule,
-    AvatarModule,
-    RippleModule,
-    AutoFocusModule,
-    ProgressSpinnerModule,
-    ServiceAddComponent,
-    ServiceListComponent,
-    ServiceEditComponent,
-    ServiceDeleteComponent
-],
+        CommonModule,
+        ReactiveFormsModule,
+        FormsModule,
+        DialogModule,
+        ButtonModule,
+        CardModule,
+        InputTextModule,
+        TranslocoModule,
+        ToastModule,
+        MatListModule,
+        KnobModule,
+        AvatarModule,
+        RippleModule,
+        AutoFocusModule,
+        ProgressSpinnerModule,
+        ServiceAddComponent,
+        ServiceListComponent,
+        ServiceEditComponent,
+        ServiceDeleteComponent
+    ],
     providers: []
 })
 export class MainComponent implements OnInit {
@@ -66,7 +66,7 @@ export class MainComponent implements OnInit {
         password: ['', Validators.required],
     });
 
-    totpItems = new Map<string, Service>();
+    totpItems = signal(new Map<string, Service>());
     tokensMap = new Map<string, TotpToken>();
     tokensDuration = new Map<string, number>();
 
@@ -117,7 +117,7 @@ export class MainComponent implements OnInit {
                 next: services => {
                     this.loadingServices.set(false);
                     subscription.unsubscribe();
-                    this.totpItems = services;
+                    this.totpItems.set(services);
                     if (services.size === 0) {
                         this.showDialog.set(true);
                     } else {
@@ -183,8 +183,8 @@ export class MainComponent implements OnInit {
 
     addNewService(url: string) {
         const subscription = this.totpService.addService(url).subscribe(services => {
-            const oldItemsCount = this.totpItems.size;
-            this.totpItems = services;
+            const oldItemsCount = this.totpItems().size;
+            this.totpItems.set(services);
             this.showTokens();
             if (services.size <= oldItemsCount) {
                 this.showDialog.set(true);
@@ -267,7 +267,7 @@ export class MainComponent implements OnInit {
                 subscription.unsubscribe();
                 this.loadingServices.set(false);
                 
-                this.totpItems = services;
+                this.totpItems.set(services);
     
                 if (services.size === 0) {
                     this.showDialog.set(true);
@@ -303,7 +303,7 @@ export class MainComponent implements OnInit {
     }
 
     onServiceEdit(event: {id: string, name: string, issuer: string}) {
-        const service = this.totpItems.get(event.id);
+        const service = this.totpItems().get(event.id);
         if (service) {
             service.name = event.name;
             service.issuer = event.issuer;
@@ -341,7 +341,7 @@ export class MainComponent implements OnInit {
         if (this.serviceToDelete) {
             const subscription = this.totpService.deleteService(this.serviceToDelete.id).subscribe({
                 next: () => {
-                    this.serviceToDelete?.id ? this.totpItems.delete(this.serviceToDelete.id) : undefined;
+                    this.serviceToDelete?.id ? this.totpItems().delete(this.serviceToDelete.id) : undefined;
                     this.messageService.add({
                         severity: 'success',
                         summary: this.translate.translate('Service Deleted'),
@@ -368,12 +368,10 @@ export class MainComponent implements OnInit {
     }
 
     hideAskForPassStorage() {
-        console.log("Vamos esconder")
         this.askForPasswordStorage.set(false)
     }
 
     showEditDialogChange(value: boolean) {
         this.showEditDialog.set(value)
-        console.log("Passando pela mudança ")
     }
 }

@@ -6,7 +6,7 @@
         <p-progress-spinner ariaLabel="loading" />
       </div>
     }
-    @if (!totpItems.size) {
+    @if (!totpItems().size) {
     <form [formGroup]="form" class="flex flex-grow-1 flex-column align-items-center" (ngSubmit)="onSubmit()">
       <p>
         {{"You need to enter your password to open your services file (or create a new one if none exists)" | transloco}}
@@ -18,11 +18,11 @@
     </form>
     }
 
-    <div *ngIf="totpItems.size === 0 && showDialog()">
+    <div *ngIf="totpItems().size === 0 && showDialog()">
       <p>{{"No services found!" | transloco}}</p>
     </div>
 
-    @if (totpItems.size > 0) {
+    @if (totpItems().size > 0) {
       <app-service-list
         [(totpItems)]="totpItems"
         [tokensMap]="tokensMap"
