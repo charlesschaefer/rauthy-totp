@@ -8,8 +8,24 @@
             <label for="issuer">{{"Service Issuer" | transloco}}</label>
             <input id="issuer" type="text" pInputText formControlName="issuer" />
         </div>
-        <div class="flex justify-content-end">
+        <div class="flex justify-content-center">
+          <div class="flex flex-column gap-2">
+            <div class="flex justify-content-center">
+              @if (service?.icon && !loading()) {
+                <p-avatar [image]="service?.icon" size="xlarge" shape="circle" (onImageError)="onImageError()" />
+              } @else if (service?.issuer && !loading()) { 
+                <p-avatar [label]="service?.issuer?.charAt(0)" size="xlarge" shape="circle" />
+              } @else if (loading()) {
+                <p-progress-spinner ariaLabel="loading" />
+              }
+            </div>
+            <p-button type="button" [link]="true" size="small" variant="text" (onClick)="updateServiceIcon()">{{"Update service icon" | transloco}}</p-button>
+          </div>
+        </div>
+        <div class="flex justify-content-center p-5">
+          <div class="flex justify-content-end">
             <p-button type="submit" [disabled]="!editForm.valid">{{"Save Changes" | transloco}}</p-button>
+          </div>
         </div>
     </form>
 </p-dialog>

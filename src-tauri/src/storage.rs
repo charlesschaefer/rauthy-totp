@@ -35,14 +35,14 @@ type Error = &'static str;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Service {
-    id: String,
-    issuer: String,
-    secret: String,
-    name: String,
-    algorithm: Algorithm,
-    digits: usize,
-    period: u64,
-    icon: String, // icon url
+    pub id: String,
+    pub issuer: String,
+    pub secret: String,
+    pub name: String,
+    pub algorithm: Algorithm,
+    pub digits: usize,
+    pub period: u64,
+    pub icon: String, // icon url
 }
 
 impl Default for Service {

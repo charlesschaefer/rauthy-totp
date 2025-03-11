@@ -63,6 +63,7 @@ pub fn run() {
             commands::get_services_tokens,
             commands::update_service,
             commands::delete_service,
+            commands::get_service_icon,
             #[cfg(mobile)]
             commands::fetch_without_pass,
         ])

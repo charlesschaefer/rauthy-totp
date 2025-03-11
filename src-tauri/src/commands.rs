@@ -7,6 +7,8 @@ use crate::crypto::*;
 use crate::state::AppState;
 use crate::storage::*;
 use crate::totp::*;
+use crate::brandfetch::search_brand;
+
 #[cfg(mobile)]
 use crate::biometric::*;
 
@@ -106,6 +108,32 @@ pub fn delete_service(app_state: State<'_, Mutex<AppState>>, service_id: String)
     }
 }
 
+#[tauri::command]
+pub fn get_service_icon(
+    app_state: State<'_, Mutex<AppState>>,
+    service_id: String,
+) -> Result<String, ()> {
+    let mut state = app_state.lock().unwrap();
+    let cloned_services = state.storage.services().clone();
+    let mut service = cloned_services.get(service_id.as_str()).unwrap().clone();
+
+    let client_id = env!("BRANDFETCH_USER_ID", "Brandfetch user_id env var not defined");
+    
+    match search_brand(&service.issuer.as_str(), client_id) {
+        Ok(brands) => {
+            if brands.len() > 0 {
+                service.icon = brands.first().unwrap().icon.clone();
+            }
+        },
+        Err(err) => {
+            service.icon = "".to_string();
+            dbg!("Error searching brand logo: {}", err);
+        }
+    }
+    state.storage.add_service(service.clone());
+
+    Ok(service.icon.clone())
+}
 #[cfg(mobile)] #[tauri::command]
 pub fn fetch_without_pass(
     app_state: State<'_, Mutex<AppState>>,

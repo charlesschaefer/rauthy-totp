@@ -119,7 +119,6 @@ pub fn decrypt_data(data: Vec<u8>, key: &[u8]) -> Result<Vec<u8>, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::Rng;
 
     #[test]
     fn test_derive_key_from_password() {
