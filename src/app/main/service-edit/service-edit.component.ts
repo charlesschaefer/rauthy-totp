@@ -8,7 +8,6 @@ import { TranslocoModule } from '@jsverse/transloco';
 import { AvatarModule } from 'primeng/avatar';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
-
 import { ImageModule } from 'primeng/image';
 
 import { Service } from '../../models/service.model';
@@ -71,6 +70,7 @@ export class ServiceEditComponent {
     onHide() {
         this.visible.update(old => false);
         this.visibleChange.emit(false);
+        console.log('treta cabulosa')
     }
 
     clearIcon() {
