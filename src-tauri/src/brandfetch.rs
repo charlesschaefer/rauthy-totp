@@ -1,8 +1,8 @@
 use minreq;
 use serde::Deserialize;
 
-
-#[derive(Debug, Deserialize)] #[allow(non_snake_case, unused)]
+#[derive(Debug, Deserialize)]
+#[allow(non_snake_case, unused)]
 pub struct Brand {
     pub brandId: String,
     pub claimed: bool,
@@ -12,8 +12,11 @@ pub struct Brand {
 }
 
 pub fn search_brand(name: &str, client_id: &str) -> Result<Vec<Brand>, Box<dyn std::error::Error>> {
-    let url = format!("https://api.brandfetch.io/v2/search/{}?c={}", name, client_id);
-    
+    let url = format!(
+        "https://api.brandfetch.io/v2/search/{}?c={}",
+        name, client_id
+    );
+
     let response = minreq::get(&url)
         //.add_header("Authorization", &format!("Bearer {}", client_id))
         .send()?;

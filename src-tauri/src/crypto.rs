@@ -3,9 +3,7 @@ use aes_gcm::{
     Aes256Gcm, Key, KeyInit, Nonce,
 };
 
-use ring::{
-    digest, pbkdf2
-};
+use ring::{digest, pbkdf2};
 use std::num::NonZeroU32;
 
 const CREDENTIAL_LEN: usize = digest::SHA256_OUTPUT_LEN;

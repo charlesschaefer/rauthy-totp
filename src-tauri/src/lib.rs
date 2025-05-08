@@ -2,16 +2,15 @@ use std::sync::Mutex;
 use tauri::Manager;
 use tauri_plugin_fs::FsExt;
 
-
+mod biometric;
+mod brandfetch;
 mod commands;
 mod crypto;
+#[cfg(desktop)]
+mod desktop;
 mod state;
 mod storage;
 mod totp;
-mod brandfetch;
-mod biometric;
-#[cfg(desktop)]
-mod desktop;
 
 #[cfg(mobile)]
 const IS_MOBILE: bool = true;
@@ -19,34 +18,42 @@ const IS_MOBILE: bool = true;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
-    builder = builder
-        .plugin(tauri_plugin_fs::init())
-        .setup(|app| {
-            #[cfg(desktop)]
-            {
-                desktop::setup_system_tray_icon(app);
-            }
+    builder = builder.plugin(tauri_plugin_fs::init()).setup(|app| {
+        #[cfg(desktop)]
+        {
+            desktop::setup_system_tray_icon(app);
+        }
 
+        let salt_path = app.
+            path()
+            .app_local_data_dir()
+            .expect("Couldn't resolve app local data dir")
+            .join("salt.txt");
+        
+        app.handle().plugin(tauri_plugin_stronghold::Builder::with_argon2(&salt_path).build())?;
 
-            app.manage(Mutex::new(state::AppState::default()));
-            let path = app.path().app_local_data_dir().expect("Couldn't resolve app local data dir");//.join("Rauthy.bin");
-            let scope = app.fs_scope();
-            // scope.allow_file(path.clone()).unwrap();
-            dbg!(scope.is_allowed(path.clone()));
+        app.manage(Mutex::new(state::AppState::default()));
+        let path = app
+            .path()
+            .app_local_data_dir()
+            .expect("Couldn't resolve app local data dir"); //.join("Rauthy.bin");
+        let scope = app.fs_scope();
+        // scope.allow_file(path.clone()).unwrap();
+        dbg!(scope.is_allowed(path.clone()));
 
-            let app_state = app.state::<Mutex<state::AppState>>();
-            let mut state = app_state.lock().unwrap();
-            state.storage_path = path;
+        let app_state = app.state::<Mutex<state::AppState>>();
+        let mut state = app_state.lock().unwrap();
+        state.storage_path = path;
 
-            #[cfg(debug_assertions)] // only include this code on debug builds
-            {
-              //let window = app.get_webview_window("main").unwrap();
-              //window.open_devtools();
-              //window.close_devtools();
-            }
+        #[cfg(debug_assertions)] // only include this code on debug builds
+        {
+            //let window = app.get_webview_window("main").unwrap();
+            //window.open_devtools();
+            //window.close_devtools();
+        }
 
-            Ok(())
-        });
+        Ok(())
+    });
 
     #[cfg(mobile)]
     if IS_MOBILE {

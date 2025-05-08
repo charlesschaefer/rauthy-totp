@@ -1,15 +1,15 @@
 use bincode;
 use serde::{Deserialize, Serialize};
+use tauri::Manager;
+use tauri_plugin_stronghold::stronghold::Stronghold;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{Read, Write};
-use std::str::FromStr;
+use std::path::PathBuf;
 use totp_rs::{Algorithm, Secret, TOTP};
 use url::Url;
 
+use crate::brandfetch::*;
 use crate::crypto::*;
 use crate::totp::*;
-use crate::brandfetch::*;
 
 const STORAGE_FILE: &str = "Rauthy.bin";
 type Error = &'static str;
@@ -55,7 +55,7 @@ impl Default for Service {
             algorithm: Algorithm::SHA1,
             digits: 6,
             period: 30,
-            icon: String::from("")
+            icon: String::from(""),
         }
     }
 }
@@ -94,13 +94,16 @@ impl TryFrom<TOTP> for Service {
         service.period = totp.step;
 
         // @TODO: set the client_id here
-        let client_id = env!("BRANDFETCH_USER_ID", "Brandfetch user_id env var not defined");
+        let client_id = env!(
+            "BRANDFETCH_USER_ID",
+            "Brandfetch user_id env var not defined"
+        );
         match search_brand(service.issuer.as_str(), client_id) {
             Ok(brands) => {
                 if brands.len() > 0 {
                     service.icon = brands.first().unwrap().icon.clone();
                 }
-            },
+            }
             Err(err) => {
                 dbg!("Error searching brand logo: {}", err);
             }
@@ -127,14 +130,12 @@ impl TryFrom<&str> for Service {
     fn try_from(url: &str) -> Result<Self, Self::Error> {
         match TOTP::from_url(url) {
             Ok(totp) => return Service::try_from(totp),
-            Err(_) => {
-                match TOTP::from_url_unchecked(url) {
-                    Ok(totp) => return Service::try_from(totp),
-                    Err(_) => {
-                        return Err("Couldn't parse the provided URL as a TOTP URL");
-                    }
+            Err(_) => match TOTP::from_url_unchecked(url) {
+                Ok(totp) => return Service::try_from(totp),
+                Err(_) => {
+                    return Err("Couldn't parse the provided URL as a TOTP URL");
                 }
-            }
+            },
         }
     }
 }
@@ -152,7 +153,10 @@ impl ServiceToken for Service {
             self.name.clone(),
         ) {
             Err(err) => {
-                dbg!("Error trying to create normal TOTP. We'll try to create unchecked", err);
+                dbg!(
+                    "Error trying to create normal TOTP. We'll try to create unchecked",
+                    err
+                );
                 totp = TOTP::new_unchecked(
                     self.algorithm,
                     self.digits,
@@ -163,7 +167,7 @@ impl ServiceToken for Service {
                     self.name.clone(),
                 );
             }
-            Ok(_totp) => totp = _totp
+            Ok(_totp) => totp = _totp,
         }
 
         match totp.generate_current() {
@@ -191,71 +195,89 @@ impl Storage {
         if key.len() == 0 {
             panic!("Key for data storing can't be empty");
         }
-
-        // let mut file_path = std::env::current_dir().unwrap();
-        // file_path.push(STORAGE_FILE);
-        let file_path = tauri_plugin_fs::FilePath::from_str("$APPLOCALDATA").unwrap().as_path().unwrap().join(STORAGE_FILE);
-        
-        let file_path_str = file_path.to_string_lossy().to_string();
-
+        let file_path = "Rauthy.bin".to_string();
         Self {
             services: HashMap::new(),
             signing_key: key,
-            file_path: file_path_str,
+            file_path,
             key_access_pass: String::new(),
         }
     }
 
-    pub fn file_exists(&self) -> bool {
-        std::fs::exists(self.file_path.clone()).unwrap()
+    fn stronghold_path<R: tauri::Runtime>(&self, app: &tauri::AppHandle<R>) -> PathBuf {
+        let mut path = app
+            .path()
+            .app_local_data_dir()
+            .expect("Couldn't resolve app local data dir");
+        path.push(&self.file_path);
+        path
     }
 
-    pub fn save_to_file(&self) -> Result<(), ()> {
-        let serialized_services = bincode::serialize(&self.services).unwrap(); // Serialize the services
-        let key = self.signing_key.clone();
-        match encrypt_data(serialized_services, key.as_slice()) {
-            // Encrypt the serialized data
-            Ok(encrypted_data) => {
-                let mut file = File::create(&self.file_path).unwrap(); // Create or open the file
-                file.write_all(&encrypted_data).unwrap_or_default(); // Write the encrypted data to the file
-                Ok(())
-            }
-            Err(_) => Err(()),
+    /// Checks if the stronghold snapshot file exists.
+    pub fn file_exists<R: tauri::Runtime>(&self, app: &tauri::AppHandle<R>) -> bool {
+        let path = self.stronghold_path(app);
+        if !path.exists() {
+            return false;
         }
+        let stronghold = match Stronghold::new(path, self.signing_key.clone()) {
+            Ok(s) => s,
+            Err(_) => return false,
+        };
+        stronghold.store().contains_key(&b"services".to_vec()).unwrap_or(false)
     }
 
-    pub fn read_from_file(&mut self) -> Result<(), ()> {
-        let mut file = File::open(&self.file_path).unwrap(); // Open the file
-        let mut encrypted_data = Vec::new();
-        file.read_to_end(&mut encrypted_data).unwrap_or_default(); // Read the encrypted data
+    /// Saves the encrypted services to Stronghold snapshot.
+    pub fn save_to_file<R: tauri::Runtime>(&self, app: &tauri::AppHandle<R>) -> Result<(), ()> {
+        let path = self.stronghold_path(app);
+        let mut stronghold = Stronghold::new(path, self.signing_key.clone()).map_err(|_| ())?;
+
+        let serialized_services = bincode::serialize(&self.services).unwrap();
+        let key = self.signing_key.clone();
+        let encrypted_data = encrypt_data(serialized_services, key.as_slice()).map_err(|_| ())?;
+
+        stronghold
+            .store()
+            .insert(b"services".to_vec(), encrypted_data, None)
+            .map_err(|_| ())?;
+
+        stronghold.save().map_err(|_| ())?;
+        Ok(())
+    }
+
+    /// Reads and decrypts the services from Stronghold snapshot.
+    pub fn read_from_file<R: tauri::Runtime>(&mut self, app: &tauri::AppHandle<R>) -> Result<(), ()> {
+        let path = self.stronghold_path(app);
+        let stronghold = Stronghold::new(path, self.signing_key.clone()).map_err(|_| ())?;
+
+        let encrypted_data = stronghold
+            .store()
+            .get(&b"services".to_vec())
+            .map_err(|_| ())?
+            .ok_or(())?;
 
         let key = self.signing_key.clone();
-        match decrypt_data(encrypted_data, key.as_slice()) {
-            // Decrypt the data
-            Ok(decrypted_data) => {
-                self.services = bincode::deserialize(&decrypted_data).unwrap();
-                return Ok(());
-            }
-            Err(_) => Err(()),
-        }
+        let decrypted_data = decrypt_data(encrypted_data, key.as_slice()).map_err(|_| ())?;
+        self.services = bincode::deserialize(&decrypted_data).unwrap();
+        Ok(())
     }
 
     pub fn services(&self) -> &ServiceMap {
         &self.services
     }
-    
+
     pub fn set_base_path(&mut self, path: std::path::PathBuf) {
-        self.file_path = String::from(path.join(STORAGE_FILE).to_str().unwrap());
+        // Not used with Stronghold, but kept for compatibility
+        self.file_path = "rauthy-totp".to_string();
     }
-    
+
     pub fn add_service(&mut self, service: Service) {
-        self.services.insert(service.id.clone(), service); // Add the new service to the inner vector
+        self.services.insert(service.id.clone(), service);
     }
-    
+
     pub fn update_service(&mut self, service: Service) {
         self.services.insert(service.id.clone(), service);
     }
-    
+
     pub fn remove_service(&mut self, id: String) -> bool {
         if let Some(_) = self.services.remove(&id) {
             return true;
@@ -288,7 +310,8 @@ impl ServicesTokens for Storage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
+    use tauri::test::mock_app;
+    use tauri::Manager;
 
     fn setup_storage() -> Storage {
         let key = vec![0; 32]; // Example key
@@ -298,78 +321,59 @@ mod tests {
     #[test]
     fn test_add_service() {
         let mut storage = setup_storage();
+        let app = mock_app();
         let service = Service::default();
         storage.add_service(service.clone());
         assert_eq!(storage.services.len(), 1);
         assert!(storage.services.contains_key(&service.id));
-        // Clean up the created file
-        let _ = fs::remove_file(&storage.file_path);
     }
 
     #[test]
     fn test_remove_service() {
         let mut storage = setup_storage();
+        let app = mock_app();
         let service = Service::default();
         storage.add_service(service.clone());
         assert!(storage.remove_service(service.id.clone()));
         assert!(!storage.services.contains_key(&service.id));
-        // Clean up the created file
-        let _ = fs::remove_file(&storage.file_path);
     }
 
     #[test]
     fn test_file_exists() {
         let storage = setup_storage();
-        assert!(!storage.file_exists()); // Should be false since the file does not exist yet
-                                         // Clean up the created file
-        let _ = fs::remove_file(&storage.file_path);
+        let app = mock_app();
+        // Should be false since the stronghold vault does not exist yet
+        assert!(!storage.file_exists(&app.app_handle()));
     }
 
     #[test]
     fn test_save_to_file() {
         let mut storage = setup_storage();
+        let app = mock_app();
         let service = Service::default();
         storage.add_service(service.clone());
-        let result = storage.save_to_file();
+        let result = storage.save_to_file(&app.app_handle());
         assert!(result.is_ok());
-        println!("Path of file saved: {:?}", storage.file_path);
-        println!(
-            "File exists: {}",
-            std::fs::exists(storage.file_path.to_string()).unwrap()
-        );
-
-        // Check if the file exists after saving
-        assert!(storage.file_exists());
-
-        // Clean up the created file
-        let _ = fs::remove_file(&storage.file_path);
+        // Check if the stronghold vault exists after saving
+        assert!(storage.file_exists(&app.app_handle()));
     }
 
     #[test]
     fn test_read_from_file() {
         let mut storage = setup_storage();
+        let app = mock_app();
         let service = Service::default();
         storage.add_service(service.clone());
-        let result = storage.save_to_file();
+        let result = storage.save_to_file(&app.app_handle());
         assert!(result.is_ok());
-        println!("Path of file saved: {:?}", storage.file_path);
 
         let mut new_storage = setup_storage();
-        println!("Path of file to test: {:?}", new_storage.file_path);
-        println!(
-            "File exists: {}",
-            std::fs::exists(new_storage.file_path.to_string()).unwrap()
-        );
+        // Check if the stronghold vault exists after saving
+        assert!(new_storage.file_exists(&app.app_handle()));
 
-        // Check if the file exists after saving
-        assert!(new_storage.file_exists());
-
-        new_storage.read_from_file().unwrap();
+        new_storage.read_from_file(&app.app_handle()).unwrap();
         assert_eq!(new_storage.services.len(), 1);
         assert!(new_storage.services.contains_key(&service.id));
-
-        // Clean up the created file
-        let _ = fs::remove_file(&new_storage.file_path);
     }
 
     #[test]
