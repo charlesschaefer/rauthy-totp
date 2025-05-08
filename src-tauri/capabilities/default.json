@@ -10,6 +10,7 @@
     {
         "identifier": "fs:scope",
         "allow": [{ "path": "$APPDATA/Rauthy.bin"}]
-    }
+    },
+    "stronghold:default"
   ]
 }

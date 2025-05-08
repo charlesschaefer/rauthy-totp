@@ -7,9 +7,9 @@ pub struct AuthOptions {
     pub allow_device_credential: bool,
     /// Label for the Cancel button. This feature is available on both Android and iOS.
     pub cancel_title: Option<String>,
-    /// The plain data that must be encrypted after successfull biometric authentication 
+    /// The plain data that must be encrypted after successfull biometric authentication
     pub data_to_encrypt: Option<String>,
-    /// The encrypted data that must be decrypted after successfull biometric authentication 
+    /// The encrypted data that must be decrypted after successfull biometric authentication
     pub data_to_decrypt: Option<String>,
     /// Specifies the text displayed on the fallback button if biometric authentication fails. This feature is available iOS only.
     pub fallback_title: Option<String>,

@@ -5,5 +5,5 @@ use crate::storage::Storage;
 #[derive(Default)]
 pub struct AppState {
     pub storage: Storage,
-    pub storage_path: PathBuf
+    pub storage_path: PathBuf,
 }

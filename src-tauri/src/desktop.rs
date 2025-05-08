@@ -47,18 +47,26 @@ pub fn setup_system_tray_icon(app: &mut App) {
                     dbg!("system tray received a middle or right click");
                 }
             },
-            TrayIconEvent::Enter { id: _, position: _, rect: _  } => {
+            TrayIconEvent::Enter {
+                id: _,
+                position: _,
+                rect: _,
+            } => {
                 dbg!("system tray received a move ");
                 let window = tray_icon.app_handle().get_webview_window("main").unwrap();
                 window.popup_menu(&menu2).unwrap();
                 //let esq = tray_icon.app_handle().menu().unwrap().popup_at(window.into(), position);
-            },
-            TrayIconEvent::Leave { id: _, position: _, rect: _  } => {
+            }
+            TrayIconEvent::Leave {
+                id: _,
+                position: _,
+                rect: _,
+            } => {
                 dbg!("system tray received a move ");
                 let window = tray_icon.app_handle().get_webview_window("main").unwrap();
                 window.hide_menu().unwrap();
                 //let esq = tray_icon.app_handle().menu().unwrap().popup_at(window.into(), position);
-            },
+            }
             err => {
                 dbg!("system tray received an unknow event", err);
             }
