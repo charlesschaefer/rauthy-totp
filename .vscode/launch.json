@@ -29,7 +29,7 @@
                 ]
             },
             // task for the `beforeDevCommand` if used, must be configured in `.vscode/tasks.json`
-            //"preLaunchTask": "ui:dev"
+            "preLaunchTask": "ui:dev"
         },
     ]
 }

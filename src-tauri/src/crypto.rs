@@ -36,7 +36,8 @@ pub fn generate_salt() -> SaltArray {
 /// let key = derive_key_from_password_and_salt(user_pass, &salt).unwrap();
 ///
 pub fn derive_key_from_password_and_salt(user_pass: &str, salt: Option<&[u8]>) -> Result<KeyArray, Error> {
-    let salt = salt.unwrap_or(&SALT.as_bytes());
+    let old_salt = &data_encoding::HEXUPPER.decode(SALT.as_bytes()).unwrap();
+    let salt = salt.unwrap_or(&old_salt);
     let n_iter = NonZeroU32::new(100_000).unwrap();
     let mut pbkdf2_hash = [0u8; CREDENTIAL_LEN];
     pbkdf2::derive(
