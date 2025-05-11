@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::string;
 use std::sync::Mutex;
 use tauri::State;
+use zeroize::Zeroize;
 
 use crate::brandfetch::search_brand;
 use crate::crypto::*;
@@ -15,27 +17,9 @@ use crate::biometric::*;
 pub fn setup_storage_keys(
     app_handle: tauri::AppHandle,
     app_state: State<'_, Mutex<AppState>>,
-    user_pass: &str,
+    user_pass: String,
 ) -> Result<ServiceMap, Error> {
-    let key = derive_key_from_password(user_pass)?;
-
-    let mut state = app_state.lock().unwrap();
-
-    let mut storage = Storage::new(key.to_vec());
-    storage.set_base_path(state.storage_path.clone());
-
-    if storage.file_exists(&app_handle) {
-        match storage.read_from_file(&app_handle) {
-            Err(_) => return Err("Couldn't decrypt the storage file"),
-            Ok(_) => {}
-        }
-    }
-
-    state.storage = storage;
-
-    let services = state.storage.services().clone();
-    // println!("Services: {:?}", services);
-    Ok(services)
+    fetch_services_with_pass(app_handle, app_state, user_pass)
 }
 
 #[tauri::command]
@@ -159,29 +143,65 @@ pub fn fetch_without_pass(
     options: AuthOptions,
 ) -> Result<ServiceMap, Error> {
     use tauri_plugin_biometric::BiometricExt;
-    let mut state = app_state.lock().unwrap();
     match app_handle
         .biometric()
         .biometric_cipher(reason, options.try_into().unwrap())
     {
-        Ok(data) => state.storage.set_key_access_pass(data.data),
+        Ok(data) => fetch_services_with_pass(app_handle, app_state, data.data),
         Err(_) => {
             dbg!("Can't load biometric decrypted data.");
+            Err("Can't load biometric decrypted data.".into())
         }
     }
 
-    let key = derive_key_from_password(state.storage.get_key_access_pass().as_str())?;
-    let mut storage = Storage::new(key.to_vec());
-    storage.set_base_path(state.storage_path.clone());
+}
+
+pub fn fetch_services_with_pass(app_handle: tauri::AppHandle, app_state: State<'_, Mutex<AppState>>, mut user_pass: String) -> Result<ServiceMap, Error> {
+    let mut state = app_state.lock().unwrap();
+
+    // Tries to generate a key in the old format, with hardcoded salt
+    // This is for backwards compatibility with older versions
+    let key = derive_key_from_password_and_salt(user_pass.as_str(), None)?;
+    let mut storage = Storage::new(key.to_vec(), None);
 
     if storage.file_exists(&app_handle) {
+    
         match storage.read_from_file(&app_handle) {
-            Err(_) => return Err("Couldn't decrypt the storage file"),
+            Err(_) => {
+                // As we couldn't read the file using the old format, we will try to read it using the new format
+                // Reading the salt from the file
+                let salt = storage.read_salt_from_file(&app_handle).unwrap();
+                let key = derive_key_from_password_and_salt(user_pass.as_str(), Some(&salt))?;
+                storage = Storage::new(key.to_vec(), Some(salt));
+
+                match storage.read_from_file(&app_handle) {
+                    Err(_) => return Err("Couldn't decrypt the storage file".into()),
+                    Ok(_) => {}                
+                }
+            }
             Ok(_) => {}
         }
+
+        // Now that we already read the file, we will generate a new salt and key, and change the key for encryption
+        let new_salt = crate::crypto::generate_salt();
+        let new_key = crate::crypto::derive_key_from_password_and_salt(user_pass.as_str(), Some(&new_salt))?;
+        storage.set_new_key_and_salt(new_key.to_vec(), new_salt);
+        storage.save_to_file(&app_handle).unwrap();
+
+    } else {
+        // If this is a new file, we will generate a new salt
+        let salt = crate::crypto::generate_salt();
+        let key = crate::crypto::derive_key_from_password_and_salt(user_pass.as_str(), Some(&salt))?;
+        storage = Storage::new(key.to_vec(), Some(salt));
     }
 
-    let services = storage.services().clone();
+    // clear the user_pass in memory
+    // This is important for security reasons
+    // to prevent the password from being stored in memory longer than necessary
+    user_pass.zeroize();
+
     state.storage = storage;
-    Ok(services.clone())
+
+    let services = state.storage.services().clone();
+    Ok(services)
 }

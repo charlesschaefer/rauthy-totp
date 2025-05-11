@@ -30,8 +30,6 @@ pub fn run() {
             .expect("Couldn't resolve app local data dir")
             .join("salt.txt");
         
-        app.handle().plugin(tauri_plugin_stronghold::Builder::with_argon2(&salt_path).build())?;
-
         app.manage(Mutex::new(state::AppState::default()));
         let path = app
             .path()

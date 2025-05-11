@@ -4,31 +4,40 @@ use aes_gcm::{
 };
 
 use ring::{digest, pbkdf2};
+use rand::RngCore;
 use std::num::NonZeroU32;
 
 const CREDENTIAL_LEN: usize = digest::SHA256_OUTPUT_LEN;
-const SALT: &str = "E3D0C30656C194272C7B6AD2ED0B7F8078FF2921F777A142A045D45931BC2771";
+pub const SALT_LEN: usize = 32;
+pub const SALT: &str = "E3D0C30656C194272C7B6AD2ED0B7F8078FF2921F777A142A045D45931BC2771";
+pub type SaltArray = [u8; SALT_LEN];
 pub type KeyArray = [u8; CREDENTIAL_LEN];
 pub type Error = &'static str;
 
-/// Derives a key from a password using PBKDF2 with HMAC-SHA512.
+/// Gera um salt aleatório de 32 bytes.
+pub fn generate_salt() -> SaltArray {
+    let mut salt = [0u8; SALT_LEN];
+    rand::thread_rng().fill_bytes(&mut salt);
+    salt
+}
+
+/// Derivates a key from the user pass and a salt
 ///
 /// # Arguments
 ///
 /// * `user_pass` - A string slice that holds the user's password.
+/// * `salt` - Some byte slice that holds the salt. If None, the default OLD hardcoded SALT is used.
 ///
 /// # Examples
 ///
 ///
 /// let user_pass = "password";
-/// let key = derive_key_from_password(user_pass).unwrap();
+/// let salt = generate_salt();
+/// let key = derive_key_from_password_and_salt(user_pass, &salt).unwrap();
 ///
-pub fn derive_key_from_password(user_pass: &str) -> Result<KeyArray, Error> {
+pub fn derive_key_from_password_and_salt(user_pass: &str, salt: Option<&[u8]>) -> Result<KeyArray, Error> {
+    let salt = salt.unwrap_or(&SALT.as_bytes());
     let n_iter = NonZeroU32::new(100_000).unwrap();
-    // let rng = SystemRandom::new();
-
-    let salt = &data_encoding::HEXUPPER.decode(SALT.as_bytes()).unwrap()[..CREDENTIAL_LEN];
-
     let mut pbkdf2_hash = [0u8; CREDENTIAL_LEN];
     pbkdf2::derive(
         pbkdf2::PBKDF2_HMAC_SHA256,
@@ -37,9 +46,6 @@ pub fn derive_key_from_password(user_pass: &str) -> Result<KeyArray, Error> {
         user_pass.as_bytes(),
         &mut pbkdf2_hash,
     );
-    /* println!("Salt: {}", data_encoding::HEXUPPER.encode(&salt));
-    println!("PBKDF2 hash: {}", data_encoding::HEXUPPER.encode(&pbkdf2_hash)); */
-
     Ok(pbkdf2_hash)
 }
 
@@ -121,7 +127,8 @@ mod tests {
     #[test]
     fn test_derive_key_from_password() {
         let user_pass = "test_password";
-        let key = derive_key_from_password(user_pass).unwrap();
+        let salt = generate_salt();
+        let key = derive_key_from_password_and_salt(user_pass, Some(&salt)).unwrap();
         assert_eq!(key.len(), CREDENTIAL_LEN);
     }
 
@@ -129,7 +136,8 @@ mod tests {
     fn test_encrypt_decrypt_data() {
         let data = b"Hello, world!".to_vec();
         let user_pass = "test_password";
-        let key = derive_key_from_password(user_pass).unwrap();
+        let salt = generate_salt();
+        let key = derive_key_from_password_and_salt(user_pass, Some(&salt)).unwrap();
 
         let encrypted_data = encrypt_data(data.clone(), &key).unwrap();
         let decrypted_data = decrypt_data(encrypted_data.clone(), &key).unwrap();
@@ -141,7 +149,8 @@ mod tests {
     fn test_encrypt_data_length() {
         let data = b"Hello, world!".to_vec();
         let user_pass = "test_password";
-        let key = derive_key_from_password(user_pass).unwrap();
+        let salt = generate_salt();
+        let key = derive_key_from_password_and_salt(user_pass, Some(&salt)).unwrap();
 
         let encrypted_data = encrypt_data(data.clone(), &key).unwrap();
         assert!(encrypted_data.len() > data.len()); // Encrypted data should be longer than original
