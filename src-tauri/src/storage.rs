@@ -1,6 +1,7 @@
 use bincode;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
+use zeroize::Zeroize;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -367,6 +368,14 @@ impl ServicesTokens for Storage {
             return Ok(tokens);
         }
         return Err(());
+    }
+}
+
+impl Drop for Storage {
+    fn drop(&mut self) {
+        self.signing_key.zeroize();
+        self.salt.zeroize();
+        self.key_access_pass.zeroize();
     }
 }
 

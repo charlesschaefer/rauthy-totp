@@ -5,6 +5,7 @@ use aes_gcm::{
 
 use ring::{digest, pbkdf2};
 use rand::RngCore;
+use zeroize::Zeroize;
 use std::num::NonZeroU32;
 
 const CREDENTIAL_LEN: usize = digest::SHA256_OUTPUT_LEN;
