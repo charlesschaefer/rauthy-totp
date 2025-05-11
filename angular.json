@@ -71,7 +71,7 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
             "port": 1420,
-            "host": "192.168.1.8"
+            "host": "192.168.1.3"
           },
           "configurations": {
             "production": {

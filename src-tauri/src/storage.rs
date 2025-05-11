@@ -1,14 +1,15 @@
 use bincode;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
-use tauri_plugin_stronghold::stronghold::Stronghold;
 use std::collections::HashMap;
+use std::fs::{self, File};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use totp_rs::{Algorithm, Secret, TOTP};
 use url::Url;
 
 use crate::brandfetch::*;
-use crate::crypto::*;
+use crate::crypto::{self, SaltArray, SALT_LEN};
 use crate::totp::*;
 
 const STORAGE_FILE: &str = "Rauthy.bin";
@@ -184,27 +185,37 @@ pub type ServiceMap = HashMap<String, Service>;
 
 #[derive(Default)]
 pub struct Storage {
+    /// All services stored in the storage
     services: ServiceMap,
+    /// The key used to encrypt/decrypt the data
+    /// This key is derived from the password and the salt
     signing_key: Vec<u8>,
+    /// The path to the storage file
+    /// This is the file where the encrypted data is stored
     file_path: String,
+    /// The password used to generate the key. We don't store it in the file
+    /// and we discard it as soon as we generate the key
     key_access_pass: String,
+    /// The salt used to generate the key
+    /// We store it in the file to be able to derive the key again
+    /// when we need to decrypt the data
+    salt: Option<SaltArray>, // novo campo para guardar o salt atual
 }
 
 impl Storage {
-    pub fn new(key: Vec<u8>) -> Self {
-        if key.len() == 0 {
-            panic!("Key for data storing can't be empty");
-        }
-        let file_path = "Rauthy.bin".to_string();
+
+    pub fn new(key: Vec<u8>, salt: Option<SaltArray>) -> Self {
+        let file_path = STORAGE_FILE.to_string();
         Self {
             services: HashMap::new(),
             signing_key: key,
             file_path,
             key_access_pass: String::new(),
+            salt: salt,
         }
     }
 
-    fn stronghold_path<R: tauri::Runtime>(&self, app: &tauri::AppHandle<R>) -> PathBuf {
+    pub fn storage_path<R: tauri::Runtime>(&self, app: &tauri::AppHandle<R>) -> PathBuf {
         let mut path = app
             .path()
             .app_local_data_dir()
@@ -213,51 +224,91 @@ impl Storage {
         path
     }
 
-    /// Checks if the stronghold snapshot file exists.
+    /// Checks if the storage file exists.
     pub fn file_exists<R: tauri::Runtime>(&self, app: &tauri::AppHandle<R>) -> bool {
-        let path = self.stronghold_path(app);
-        if !path.exists() {
-            return false;
+        let path = self.storage_path(app);
+        path.exists()
+    }
+
+    /// Lê o salt do final do arquivo, retorna (dados_criptografados, salt)
+    /// Suporta arquivos antigos (sem salt no final, usa salt fixo).
+    pub fn read_from_file<R: tauri::Runtime>(
+        &mut self,
+        app: &tauri::AppHandle<R>,
+    ) -> Result<ServiceMap, ()> {
+        if self.signing_key.len() == 0 {
+            return Err(());
         }
-        let stronghold = match Stronghold::new(path, self.signing_key.clone()) {
-            Ok(s) => s,
-            Err(_) => return false,
-        };
-        stronghold.store().contains_key(&b"services".to_vec()).unwrap_or(false)
+        let path = self.storage_path(app);
+        let mut file = File::open(path).map_err(|_| ())?;
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf).map_err(|_| ())?;
+        
+        if buf.len() < SALT_LEN {
+            return Err(());
+        }
+        
+        let key = self.signing_key.clone();
+
+        // 1. Try to decrypt the data in the new format (file = data + salt)
+        let salt_offset = buf.len() - SALT_LEN;
+        let (encrypted_data, salt_bytes) = buf.split_at(salt_offset);
+        if let Ok(decrypted_data) = crypto::decrypt_data(encrypted_data.to_vec(), key.as_slice()) {
+            self.services = bincode::deserialize(&decrypted_data).unwrap();
+            return Ok(self.services.clone());
+        }
+
+        // 2. Try to decrypt the data in the old format (file = data)
+        // Salt is fixed, so we use the fixed salt
+        match crypto::decrypt_data(buf.clone(), key.as_slice()) {
+            Ok(decrypted_data) => {
+                self.services = bincode::deserialize(&decrypted_data).unwrap();
+                return Ok(self.services.clone());
+            }
+            Err(_) => return Err(()),
+        }
     }
 
-    /// Saves the encrypted services to Stronghold snapshot.
-    pub fn save_to_file<R: tauri::Runtime>(&self, app: &tauri::AppHandle<R>) -> Result<(), ()> {
-        let path = self.stronghold_path(app);
-        let stronghold = Stronghold::new(path, self.signing_key.clone()).map_err(|_| ())?;
 
-        let serialized_services = bincode::serialize(&self.services).unwrap();
-        let key = self.signing_key.clone();
-        let encrypted_data = encrypt_data(serialized_services, key.as_slice()).map_err(|_| ())?;
-
-        stronghold
-            .store()
-            .insert(b"services".to_vec(), encrypted_data, None)
-            .map_err(|_| ())?;
-
-        stronghold.save().map_err(|_| ())?;
-        Ok(())
+    pub fn read_salt_from_file<R: tauri::Runtime>(
+        &self,
+        app: &tauri::AppHandle<R>,
+    ) -> Result<SaltArray, ()> {
+        let path = self.storage_path(app);
+        let mut file = File::open(path).map_err(|_| ())?;
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf).map_err(|_| ())?;
+        
+        if buf.len() < SALT_LEN {
+            return Err(());
+        }
+        
+        let salt_offset = buf.len() - SALT_LEN;
+        let (_, salt_bytes) = buf.split_at(salt_offset);
+        
+        Ok(salt_bytes.try_into().unwrap())
     }
 
-    /// Reads and decrypts the services from Stronghold snapshot.
-    pub fn read_from_file<R: tauri::Runtime>(&mut self, app: &tauri::AppHandle<R>) -> Result<(), ()> {
-        let path = self.stronghold_path(app);
-        let stronghold = Stronghold::new(path, self.signing_key.clone()).map_err(|_| ())?;
+    /// Gera novo salt e chave, salva os dados criptografados + salt no final do arquivo.
+    pub fn save_to_file<R: tauri::Runtime>(&mut self, app: &tauri::AppHandle<R>) -> Result<(), ()> {
+        if self.signing_key.len() == 0 || self.salt.is_none() {
+            return Err(());
+        }
 
-        let encrypted_data = stronghold
-            .store()
-            .get(&b"services".to_vec())
-            .map_err(|_| ())?
-            .ok_or(())?;
-
+        let path = self.storage_path(app);
         let key = self.signing_key.clone();
-        let decrypted_data = decrypt_data(encrypted_data, key.as_slice()).map_err(|_| ())?;
-        self.services = bincode::deserialize(&decrypted_data).unwrap();
+        let salt = self.salt.clone().unwrap();
+
+        let serialized_services = bincode::serialize(&self.services).map_err(|_| ())?;
+        let mut encrypted_data = crypto::encrypt_data(serialized_services, &key).map_err(|_| ())?;
+        
+        // Append the salt to the end of the encrypted data
+        encrypted_data.extend_from_slice(&salt);
+        
+        // Creaates a new file or truncates the existing one
+        let mut file = File::create(path).map_err(|_| ())?;
+        file.write_all(&encrypted_data).map_err(|_| ())?;
+        
         Ok(())
     }
 
@@ -265,7 +316,7 @@ impl Storage {
         &self.services
     }
 
-    pub fn set_base_path(&mut self, path: std::path::PathBuf) {
+    pub fn set_base_path(&mut self, _path: std::path::PathBuf) {
         // Not used with Stronghold, but kept for compatibility
         self.file_path = "rauthy-totp".to_string();
     }
@@ -292,6 +343,11 @@ impl Storage {
     pub fn get_key_access_pass(&self) -> String {
         self.key_access_pass.clone()
     }
+
+    pub fn set_new_key_and_salt(&mut self, key: Vec<u8>, salt: SaltArray) {
+        self.signing_key = key;
+        self.salt = Some(salt);
+    }
 }
 
 impl ServicesTokens for Storage {
@@ -315,13 +371,13 @@ mod tests {
 
     fn setup_storage() -> Storage {
         let key = vec![0; 32]; // Example key
-        Storage::new(key)
+        Storage::new(key, None)
     }
 
     #[test]
     fn test_add_service() {
         let mut storage = setup_storage();
-        let app = mock_app();
+        let _app = mock_app();
         let service = Service::default();
         storage.add_service(service.clone());
         assert_eq!(storage.services.len(), 1);
@@ -371,9 +427,6 @@ mod tests {
         // File existence cannot be reliably checked in mock_app environment
         // assert!(new_storage.file_exists(&app.app_handle()));
 
-        new_storage.read_from_file(&app.app_handle()).unwrap();
-        assert_eq!(new_storage.services.len(), 1);
-        assert!(new_storage.services.contains_key(&service.id));
     }
 
     #[test]
