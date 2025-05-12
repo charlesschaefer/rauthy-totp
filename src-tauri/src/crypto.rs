@@ -17,7 +17,7 @@ pub type Error = &'static str;
 /// Gera um salt aleatório de 32 bytes.
 pub fn generate_salt() -> SaltArray {
     let mut salt = [0u8; SALT_LEN];
-    rand::thread_rng().fill_bytes(&mut salt);
+    rand::rng().fill_bytes(&mut salt);
     salt
 }
 

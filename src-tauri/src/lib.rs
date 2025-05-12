@@ -23,12 +23,6 @@ pub fn run() {
         {
             desktop::setup_system_tray_icon(app);
         }
-
-        let salt_path = app.
-            path()
-            .app_local_data_dir()
-            .expect("Couldn't resolve app local data dir")
-            .join("salt.txt");
         
         app.manage(Mutex::new(state::AppState::default()));
         let path = app

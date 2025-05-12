@@ -2,7 +2,7 @@ use bincode;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
 use std::collections::HashMap;
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use totp_rs::{Algorithm, Secret, TOTP};
@@ -61,17 +61,17 @@ impl Default for Service {
     }
 }
 
-impl Service {
-    pub fn new(parsable_uri: &str) -> Result<Self, ()> {
-        match Url::parse(parsable_uri) {
-            Ok(uri) => match Self::try_from(uri) {
-                Ok(result) => Ok(result),
-                Err(_) => Err(()),
-            },
-            Err(_) => Err(()),
-        }
-    }
-}
+// impl Service {
+//     pub fn new(parsable_uri: &str) -> Result<Self, ()> {
+//         match Url::parse(parsable_uri) {
+//             Ok(uri) => match Self::try_from(uri) {
+//                 Ok(result) => Ok(result),
+//                 Err(_) => Err(()),
+//             },
+//             Err(_) => Err(()),
+//         }
+//     }
+// }
 
 impl TryFrom<TOTP> for Service {
     type Error = Error;
@@ -241,6 +241,10 @@ impl Storage {
         }
         let path = self.storage_path(app);
         let mut file = File::open(path).map_err(|_| ())?;
+        
+        self.set_permissions(&file);
+
+
         let mut buf = Vec::new();
         file.read_to_end(&mut buf).map_err(|_| ())?;
         
@@ -252,7 +256,7 @@ impl Storage {
 
         // 1. Try to decrypt the data in the new format (file = data + salt)
         let salt_offset = buf.len() - SALT_LEN;
-        let (encrypted_data, salt_bytes) = buf.split_at(salt_offset);
+        let (encrypted_data, _salt_bytes) = buf.split_at(salt_offset);
         if let Ok(decrypted_data) = crypto::decrypt_data(encrypted_data.to_vec(), key.as_slice()) {
             self.services = bincode::deserialize(&decrypted_data).unwrap();
             return Ok(self.services.clone());
@@ -309,16 +313,13 @@ impl Storage {
         let mut file = File::create(path).map_err(|_| ())?;
         file.write_all(&encrypted_data).map_err(|_| ())?;
         
+        self.set_permissions(&file);
+
         Ok(())
     }
 
     pub fn services(&self) -> &ServiceMap {
         &self.services
-    }
-
-    pub fn set_base_path(&mut self, _path: std::path::PathBuf) {
-        // Not used with Stronghold, but kept for compatibility
-        self.file_path = "rauthy-totp".to_string();
     }
 
     pub fn add_service(&mut self, service: Service) {
@@ -336,17 +337,23 @@ impl Storage {
         return false;
     }
 
-    pub fn set_key_access_pass(&mut self, code: String) {
-        self.key_access_pass = code;
-    }
-
-    pub fn get_key_access_pass(&self) -> String {
-        self.key_access_pass.clone()
-    }
-
     pub fn set_new_key_and_salt(&mut self, key: Vec<u8>, salt: SaltArray) {
         self.signing_key = key;
         self.salt = Some(salt);
+    }
+
+    fn set_permissions(&self, file: &File) {
+        let metadata = file.metadata().unwrap();
+        let mut permissions = metadata.permissions();
+        #[cfg(any(unix, target_os = "macos"))]
+        {
+            permissions.set_mode(0o600); // Read/write for owner only
+        }
+        #[cfg(windows)]
+        {
+            permissions.set_readonly(false);
+        }
+        file.set_permissions(permissions).unwrap();
     }
 }
 
@@ -387,7 +394,7 @@ mod tests {
     #[test]
     fn test_remove_service() {
         let mut storage = setup_storage();
-        let app = mock_app();
+        let _app = mock_app();
         let service = Service::default();
         storage.add_service(service.clone());
         assert!(storage.remove_service(service.id.clone()));
@@ -423,7 +430,7 @@ mod tests {
         let result = storage.save_to_file(&app.app_handle());
         assert!(result.is_ok());
 
-        let mut new_storage = setup_storage();
+        //let mut new_storage = setup_storage();
         // File existence cannot be reliably checked in mock_app environment
         // assert!(new_storage.file_exists(&app.app_handle()));
 
