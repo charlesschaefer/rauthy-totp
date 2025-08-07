@@ -14,56 +14,49 @@
       />
   </div>
   <ul>
-    <li *ngFor="let service of itemList()">
-      <!-- <ngx-swipe-menu [swipeLeftActions]="actionList" [minSwipeDistance]="20" [data]="service"> [swipeLeftActionLabel]="'Edit'|transloco" [swipeRightActionLabel]="'Delete'|transloco" -->
-      <ngx-swipe-menu 
-        [enableSwipeLeft]="true" [enableSwipeRight]="true"
-        swipeLeftActionIcon="pi pi-pencil" swipeRightActionIcon="pi pi-trash"
-        [showSwipeLeftActions]="false" [showSwipeRightActions]="false" 
-        (swipeLeftDefaultAction)="onSwipeLeft(service)" (swipeRightDefaultAction)="onSwipeRight(service)"
-        [data]="service"
-      >
-        <ng-template #actions>
-          <div class="flex flex-row gap-2">
-            <div class="ng-swipe-action-button ng-swipe-action-button-remove">
-              <p-button severity="danger" icon="pi pi-trash" />
-            </div>
-            <div class="ng-swipe-action-button ng-swipe-action-button-edit">
-              <p-button severity="success" icon="pi pi-pencil" />
-            </div>
-          </div>
+    @for (service of itemList(); track service.id) {
+      <li>
+        <!-- <ngx-swipe-menu [swipeLeftActions]="actionList" [minSwipeDistance]="20" [data]="service"> [swipeLeftActionLabel]="'Edit'|transloco" [swipeRightActionLabel]="'Delete'|transloco" -->
+        <ng-template #serviceItem>
+          <app-service-item 
+            [service]="service"
+            [tokensMap]="tokensMap"
+            [tokensDuration]="tokensDuration"
+            (deleteService)="deleteService.emit($event)"
+            (editService)="editService.emit($event)"
+            (copyToken)="copyToken.emit($event)"
+            (itemChange)="totpItemsChange.emit(totpItems())"
+          />
         </ng-template>
-        @let token = tokensMap.get(service.id)?.token || '';
-        <div class="flex gap-3 justify-content-around align-items-center service-item">
-          <div class="flex service-item-logo">
-            @if (service.icon) {
-              <p-avatar [image]="service.icon" size="xlarge" shape="circle" (onImageError)="onImageError($event, service)" />
-            } @else {
-              <p-avatar [label]="service.issuer[0]" size="xlarge" shape="circle" />
-            }
-          </div>
-          <div class="flex flex-grow-1 align-items-start service-item-name flex-column">
-            <span class="service-name text-xl">{{ service.name }}</span>
-            <span class="service-issuer text-sm">{{ service.issuer }}</span>
-          </div>
-          @if (tokensMap.has(service.id)) {
-            <div class="flex gap-2 align-items-center service-item-token"
-              (click)="copyToken.emit(token)" (keypress)="copyToken.emit(token)" aria-hidden="true"
-              pRipple
-            >
-              <strong class="flex align-items-center">
-                {{ token?.substr(0, 3) }}
-                {{ token?.substr(3) }}
-              </strong>
-              @if (tokensDuration.has(service.id)) {
-                <span class="flex flex-shrink-1 align-items-center">
-                  <p-knob [readonly]="true" class="flex align-items-center" max="30" min="0" [ngModel]="tokensDuration.get(service.id)" size="45" />
-                </span>
-              }
+        @if (isMobile()) {
+        <ngx-swipe-menu 
+          [enableSwipeLeft]="true" [enableSwipeRight]="true"
+          swipeLeftActionIcon="pi pi-pencil" swipeRightActionIcon="pi pi-trash"
+          [showSwipeLeftActions]="false" [showSwipeRightActions]="false" 
+          (swipeLeftDefaultAction)="onSwipeLeft(service)" (swipeRightDefaultAction)="onSwipeRight(service)"
+          [data]="service"
+        >
+          <ng-template #actions>
+            <div class="flex flex-row gap-2">
+              <div class="ng-swipe-action-button ng-swipe-action-button-remove">
+                <p-button severity="danger" icon="pi pi-trash" />
+              </div>
+              <div class="ng-swipe-action-button ng-swipe-action-button-edit">
+                <p-button severity="success" icon="pi pi-pencil" />
+              </div>
             </div>
-          }
-        </div>
-      </ngx-swipe-menu>
-    </li>
+          </ng-template>
+          <ng-component [ngTemplateOutlet]="serviceItem"></ng-component>
+        </ngx-swipe-menu>
+        } @else {
+          <div class="ngx-swipe-menu-content">
+            <ng-component [ngTemplateOutlet]="serviceItem"></ng-component>
+          </div>
+        }
+      </li>
+
+
+
+    }
   </ul>
 </div>

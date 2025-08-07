@@ -1,7 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
-import { invoke } from "@tauri-apps/api/core";
 import { TranslocoService } from '@jsverse/transloco';
 import { MessageService } from 'primeng/api';
 import { ToolbarModule } from 'primeng/toolbar';

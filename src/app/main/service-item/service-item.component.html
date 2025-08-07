@@ -1,0 +1,36 @@
+@let token = tokensMap.get(service.id)?.token || '';
+<div class="flex gap-3 justify-content-around align-items-center service-item">
+  <div class="flex service-item-logo">
+    @if (service.icon) {
+      <p-avatar [image]="service.icon" size="xlarge" shape="circle" (onImageError)="onImageError($event, service)" />
+    } @else {
+      <p-avatar [label]="service.issuer[0]" size="xlarge" shape="circle" />
+    }
+  </div>
+  <div class="flex flex-grow-1 align-items-start service-item-name flex-column">
+    <span class="service-name text-xl">{{ service.name }}</span>
+    <span class="service-issuer text-sm">{{ service.issuer }}</span>
+  </div>
+  @if (tokensMap.has(service.id)) {
+    <div class="flex gap-2 align-items-center service-item-token"
+      (click)="copyToken.emit(token)" (keypress)="copyToken.emit(token)" aria-hidden="true"
+      pRipple
+    >
+      <strong class="flex align-items-center">
+        {{ token?.substring(0, 3) }}
+        {{ token?.substring(3) }}
+      </strong>
+      @if (tokensDuration.has(service.id)) {
+        <span class="flex flex-shrink-1 align-items-center">
+          <p-knob [readonly]="true" class="flex align-items-center" max="30" min="0" [ngModel]="tokensDuration.get(service.id)" size="45" />
+        </span>
+      }
+    </div>
+  }
+  @if (!isMobile()) {
+  <div class="">
+    <p-menu #menu [model]="serviceMenuItems" [popup]="true" appendTo="body" />
+    <p-button icon="pi pi-ellipsis-v" label="" class="task-item-menu-button" severity="secondary" (onClick)="menu.toggle($event)" />
+  </div>
+  }
+</div>
