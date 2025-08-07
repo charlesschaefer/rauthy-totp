@@ -60,6 +60,10 @@ li {
         &.active {
             background-color: var(--p-primary-500);
             color: var(--p-primary-contrast-color);
+
+            .service-issuer {
+                color: var(--p-primary-contrast-color);
+            }
         }
 
         &:active {
