@@ -2,8 +2,9 @@ use bincode;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
 use std::collections::HashMap;
+use std::fmt::format;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Read, Write, Result as IoResult, Error as IoError};
 use std::path::PathBuf;
 use totp_rs::{Algorithm, Secret, TOTP};
 use url::Url;
@@ -13,7 +14,12 @@ use crate::crypto::{self, SaltArray, SALT_LEN};
 use crate::totp::*;
 
 const STORAGE_FILE: &str = "Rauthy.bin";
-type Error = &'static str;
+
+#[derive(Debug)]
+pub enum StorageError {
+    Io(IoError),
+    Generic(&'static str),
+}
 
 // TOTP URI format:
 // otpauth://totp/{issuer}:{displayUserName}?secret={secretKey}&issuer={issuer}&algorithm={algorithm}&digits={digits}&period={period}
@@ -74,11 +80,11 @@ impl Default for Service {
 // }
 
 impl TryFrom<TOTP> for Service {
-    type Error = Error;
+    type Error = StorageError;
 
     fn try_from(totp: TOTP) -> Result<Self, Self::Error> {
         if totp.account_name.len() == 0 {
-            return Err("Invalid TOTP instance");
+            return Err(StorageError::Generic("Invalid TOTP instance"));
         }
         let mut service = Service::default();
 
@@ -115,18 +121,18 @@ impl TryFrom<TOTP> for Service {
 }
 
 impl TryFrom<Url> for Service {
-    type Error = Error;
+    type Error = StorageError;
 
     fn try_from(url: Url) -> Result<Self, Self::Error> {
         match TOTP::from_url(url.as_str()) {
             Ok(totp) => Service::try_from(totp),
-            Err(_) => Err("Couldn't create a service from this URL"),
+            Err(_) => Err(StorageError::Generic("Couldn't create a service from this URL")),
         }
     }
 }
 
 impl TryFrom<&str> for Service {
-    type Error = Error;
+    type Error = StorageError;
 
     fn try_from(url: &str) -> Result<Self, Self::Error> {
         match TOTP::from_url(url) {
@@ -134,7 +140,7 @@ impl TryFrom<&str> for Service {
             Err(_) => match TOTP::from_url_unchecked(url) {
                 Ok(totp) => return Service::try_from(totp),
                 Err(_) => {
-                    return Err("Couldn't parse the provided URL as a TOTP URL");
+                    return Err(StorageError::Generic("Couldn't parse the provided URL as a TOTP URL"));
                 }
             },
         }
@@ -142,7 +148,7 @@ impl TryFrom<&str> for Service {
 }
 
 impl ServiceToken for Service {
-    fn current_totp(&self) -> Result<TotpToken, Error> {
+    fn current_totp(&self) -> Result<TotpToken, &'static str> {
         let totp;
         match TOTP::new(
             self.algorithm,
@@ -221,6 +227,7 @@ impl Storage {
             .app_local_data_dir()
             .expect("Couldn't resolve app local data dir");
         path.push(&self.file_path);
+        dbg!("Storage file path: {}", path.display());
         path
     }
 
@@ -235,21 +242,18 @@ impl Storage {
     pub fn read_from_file<R: tauri::Runtime>(
         &mut self,
         app: &tauri::AppHandle<R>,
-    ) -> Result<ServiceMap, ()> {
+    ) -> Result<ServiceMap, StorageError> {
         if self.signing_key.len() == 0 {
-            return Err(());
+            return Err(StorageError::Generic("Couldn't read from file: signing key is empty"));
         }
         let path = self.storage_path(app);
-        let mut file = File::open(path).map_err(|_| ())?;
+        let mut file = File::open(path).map_err(|err| StorageError::Io(err))?;
         
-        self.set_permissions(&file);
-
-
         let mut buf = Vec::new();
-        file.read_to_end(&mut buf).map_err(|_| ())?;
+        file.read_to_end(&mut buf).map_err(|err| StorageError::Io(err))?;
         
         if buf.len() < SALT_LEN {
-            return Err(());
+            return Err(StorageError::Generic("File is too small to contain valid data"));
         }
         
         let key = self.signing_key.clone();
@@ -269,7 +273,7 @@ impl Storage {
                 self.services = bincode::deserialize(&decrypted_data).unwrap();
                 return Ok(self.services.clone());
             }
-            Err(_) => return Err(()),
+            Err(_) => return Err(StorageError::Generic("Couldn't decrypt the data with the provided key")),
         }
     }
 
@@ -313,7 +317,7 @@ impl Storage {
         let mut file = File::create(path).map_err(|_| ())?;
         file.write_all(&encrypted_data).map_err(|_| ())?;
         
-        self.set_permissions(&file);
+        self.set_permissions(&file).map_err(|_| ())?;
 
         Ok(())
     }
@@ -342,18 +346,21 @@ impl Storage {
         self.salt = Some(salt);
     }
 
-    fn set_permissions(&self, file: &File) {
+    fn set_permissions(&self, file: &File) -> IoResult<()> {
         let metadata = file.metadata().unwrap();
         let mut permissions = metadata.permissions();
         #[cfg(any(unix, target_os = "macos"))]
         {
+            use std::os::unix::fs::PermissionsExt;
             permissions.set_mode(0o600); // Read/write for owner only
         }
         #[cfg(windows)]
         {
             permissions.set_readonly(false);
         }
-        file.set_permissions(permissions).unwrap();
+        file.set_permissions(permissions)?;
+
+        Ok(())
     }
 }
 
