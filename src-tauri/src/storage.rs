@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use tauri::Manager;
 use zeroize::Zeroize;
 use std::collections::HashMap;
+use std::fmt::format;
 use std::fs::File;
 use std::io::{Read, Write, Result as IoResult, Error as IoError};
 use std::path::PathBuf;
