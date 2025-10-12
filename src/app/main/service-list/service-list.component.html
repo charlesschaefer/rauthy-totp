@@ -1,7 +1,6 @@
 <div class="flex flex-column flex-grow-1">
   <div class="flex flex-row gap-3 justify-content-center">
     <h2 class="flex">{{"Available Services" | transloco}}</h2>
-    <p-button class="flex align-content-center" variant="text" (onClick)="addService.emit()">{{"Add Service" | transloco}}</p-button>
   </div>
   <div class="flex flex-row gap-3 justify-content-center">
       <input type="text" pInputText placeholder="{{'Search' | transloco}}" 
@@ -59,4 +58,16 @@
 
     }
   </ul>
+  
+  <!-- Floating Action Button -->
+  <p-button 
+    class="fab-button"
+    icon="pi pi-plus" 
+    (onClick)="addService.emit()"
+    [pTooltip]="'Add Service' | transloco"
+    tooltipPosition="left"
+    severity="primary"
+    [rounded]="true"
+    [raised]="true">
+  </p-button>
 </div>

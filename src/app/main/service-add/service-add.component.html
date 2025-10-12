@@ -3,7 +3,7 @@
 }
 
 <div class="service-add-content" [class.hidden]="!visible || scanning()">
-  <p-dialog [(visible)]="visible" header="Add Service" [modal]="true">
+  <p-dialog [(visible)]="visible" header="Add Service" [modal]="true" (onHide)="onDialogHide()">
     <p>
       {{"Choose to scan a QR code or paste a string to add a new service." | transloco}}
     </p>

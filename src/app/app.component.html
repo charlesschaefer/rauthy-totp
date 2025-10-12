@@ -12,7 +12,25 @@
         <!-- <i class="pi pi-search"></i> -->
       </div>
       <div class="p-toolbar-group-end">
-        <!-- <i class="pi pi-cog"></i> -->
+        <!-- Lock/Authentication Status Button -->
+        <p-button 
+          [icon]="isAuthenticated() ? 'pi pi-lock-open' : 'pi pi-lock'"
+          variant="text" 
+          (onClick)="onLockClick()"
+          [pTooltip]="isAuthenticated() ? ('Logout' | transloco) : ('Not authenticated' | transloco)"
+          tooltipPosition="bottom"
+          [disabled]="!isAuthenticated()">
+        </p-button>
+        
+        @if (isAuthenticated()) {
+          <p-button 
+            icon="pi pi-bars" 
+            variant="text" 
+            (onClick)="toggleDrawer()"
+            [pTooltip]="'Menu' | transloco"
+            tooltipPosition="bottom">
+          </p-button>
+        }
       </div>
     </p-toolbar>
   </header>
@@ -23,4 +41,17 @@
   <footer class="flex flex-initial justify-content-center">
     <app-version />
   </footer>
+
+  <!-- Menu Drawer -->
+  <p-drawer 
+    [(visible)]="showDrawer" 
+    [modal]="true" 
+    position="right" 
+    [style]="{ width: '300px' }"
+    [header]="'Menu' | transloco">
+    
+    <div class="flex flex-column gap-2">
+      <p-menu [model]="menuItems" [style]="{ border: 'none' }"></p-menu>
+    </div>
+  </p-drawer>
 </div>

@@ -61,4 +61,10 @@ export class ServiceAddComponent implements OnInit {
             this.showURLInput.set(false);
         }
     }
+
+    onDialogHide() {
+        this.visibleChange.emit(false);
+        this.showURLInput.set(false);
+        this.urlInput.reset();
+    }
 }

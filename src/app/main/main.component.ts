@@ -22,6 +22,8 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ServiceAddComponent } from './service-add/service-add.component';
 import { ServiceEditComponent } from './service-edit/service-edit.component';
 import { checkStatus } from '@tauri-apps/plugin-biometric';
+import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { save, open } from '@tauri-apps/plugin-dialog';
 
 import { TotpService } from '../services/totp.service';
 import { Service } from '../models/service.model';
@@ -75,6 +77,7 @@ export class MainComponent implements OnInit {
     loadingServices = signal(false);
     showEditDialog = signal(false);
     showDeleteDialog = signal(false);
+    showPasswordChangeDialog = signal(false);
 
     selectedService?: Service;
     serviceToDelete?: Service;
@@ -93,6 +96,25 @@ export class MainComponent implements OnInit {
     ) { }
 
     async ngOnInit() {
+        // Listen for menu actions from app component
+        window.addEventListener('menuAction', (event: any) => {
+            const action = event.detail.action;
+            switch (action) {
+                case 'export':
+                    this.exportServices();
+                    break;
+                case 'import':
+                    this.importServices();
+                    break;
+                case 'changePassword':
+                    this.changePassword();
+                    break;
+                case 'logout':
+                    this.logout();
+                    break;
+            }
+        });
+
         const hasBiometrics = await checkStatus();
         if (hasBiometrics.isAvailable) {
             this.isBiometricAble = true;
@@ -104,7 +126,6 @@ export class MainComponent implements OnInit {
         } else {
             this.isBiometricAble = false;
         }
-
 
         // Testing QRCode GUI
         //this.scanQRCode(null);
@@ -118,6 +139,7 @@ export class MainComponent implements OnInit {
                     this.loadingServices.set(false);
                     subscription.unsubscribe();
                     this.totpItems.set(services);
+                    this.emitAuthenticationState(true);
                     if (services.size === 0) {
                         this.showDialog.set(true);
                     } else {
@@ -132,6 +154,7 @@ export class MainComponent implements OnInit {
                 error: error => {
                     this.loadingServices.set(false);
                     subscription.unsubscribe();
+                    this.emitAuthenticationState(false);
                     this.messageService.add({
                         summary: this.translate.translate("Error trying to open the services file"),
                         detail: this.translate.translate("Couldn't open the services file: ") + error,
@@ -144,6 +167,15 @@ export class MainComponent implements OnInit {
 
     async onSubmitServiceUrl(serviceUrl: string) {
         this.addNewService(serviceUrl);
+    }
+
+    onDialogVisibilityChange(visible: boolean) {
+        this.showDialog.set(visible);
+    }
+
+    private emitAuthenticationState(authenticated: boolean) {
+        const event = new CustomEvent('authenticationState', { detail: { authenticated } });
+        window.dispatchEvent(event);
     }
 
     async scanQRCode(_event: any) {
@@ -268,6 +300,7 @@ export class MainComponent implements OnInit {
                 this.loadingServices.set(false);
                 
                 this.totpItems.set(services);
+                this.emitAuthenticationState(true);
     
                 if (services.size === 0) {
                     this.showDialog.set(true);
@@ -278,6 +311,7 @@ export class MainComponent implements OnInit {
             error: (error) => {
                 this.loadingServices.set(false);
                 subscription.unsubscribe();
+                this.emitAuthenticationState(false);
                 this.messageService.add({
                     summary: this.translate.translate("Error trying to open the services file"),
                     detail: this.translate.translate("Couldn't open the services file: ") + error,
@@ -373,5 +407,184 @@ export class MainComponent implements OnInit {
 
     showEditDialogChange(value: boolean) {
         this.showEditDialog.set(value)
+    }
+
+    async exportServices() {
+        try {
+            const subscription = this.totpService.exportServicesCsv().subscribe({
+                next: async (csvContent) => {
+                    subscription.unsubscribe();
+                    
+                    // Generate filename with timestamp
+                    const timestamp = DateTime.now().toFormat('yyyy-MM-dd_HH-mm-ss');
+                    const filename = `rauthy-services-${timestamp}.csv`;
+                    
+                    // Use Tauri's file save dialog
+                    const filePath = await save({
+                        title: this.translate.translate('Save CSV File'),
+                        defaultPath: filename,
+                        filters: [
+                            {
+                                name: 'CSV Files',
+                                extensions: ['csv']
+                            }
+                        ]
+                    });
+                    
+                    if (filePath) {
+                        await writeTextFile(filePath, csvContent);
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: this.translate.translate('Export Successful'),
+                            detail: this.translate.translate('Services exported to CSV successfully!')
+                        });
+                    }
+                },
+                error: (error) => {
+                    subscription.unsubscribe();
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: this.translate.translate('Export Error'),
+                        detail: this.translate.translate('Could not export services: ') + error
+                    });
+                }
+            });
+        } catch (error) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.translate('Export Error'),
+                detail: this.translate.translate('Could not export services: ') + error
+            });
+        }
+    }
+
+    async importServices() {
+        try {
+            // Use Tauri's file open dialog
+            const filePath = await open({
+                title: this.translate.translate('Import CSV File'),
+                filters: [
+                    {
+                        name: 'CSV Files',
+                        extensions: ['csv']
+                    }
+                ]
+            });
+
+            if (filePath) {
+                const csvContent = await readTextFile(filePath);
+                
+                const subscription = this.totpService.importServicesCsv(csvContent).subscribe({
+                    next: (services) => {
+                        subscription.unsubscribe();
+                        this.totpItems.set(services);
+                        this.showTokens();
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: this.translate.translate('Import Successful'),
+                            detail: this.translate.translate('Services imported from CSV successfully!')
+                        });
+                    },
+                    error: (error) => {
+                        subscription.unsubscribe();
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: this.translate.translate('Import Error'),
+                            detail: this.translate.translate('Could not import services: ') + error
+                        });
+                    }
+                });
+            }
+        } catch (error) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.translate('Import Error'),
+                detail: this.translate.translate('Could not import services: ') + error
+            });
+        }
+    }
+
+    changePassword() {
+        this.showPasswordChangeDialog.set(true);
+    }
+
+    async confirmPasswordChange(newPassword: string) {
+        try {
+            const subscription = this.totpService.changePassword(newPassword).subscribe({
+                next: () => {
+                    subscription.unsubscribe();
+                    this.showPasswordChangeDialog.set(false);
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: this.translate.translate('Password Changed'),
+                        detail: this.translate.translate('Password changed successfully!')
+                    });
+                },
+                error: (error) => {
+                    subscription.unsubscribe();
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: this.translate.translate('Password Change Error'),
+                        detail: this.translate.translate('Could not change password: ') + error
+                    });
+                }
+            });
+        } catch (error) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.translate('Password Change Error'),
+                detail: this.translate.translate('Could not change password: ') + error
+            });
+        }
+    }
+
+    cancelPasswordChange() {
+        this.showPasswordChangeDialog.set(false);
+    }
+
+    logout() {
+        // Notify backend to close services file
+        const subscription = this.totpService.closeServicesFile().subscribe({
+            next: () => {
+                subscription.unsubscribe();
+                this.performLogout();
+            },
+            error: (error) => {
+                subscription.unsubscribe();
+                console.error('Error closing services file:', error);
+                // Still perform logout even if backend call fails
+                this.performLogout();
+            }
+        });
+    }
+
+    private performLogout() {
+        // Clear all data and reset to initial state
+        this.totpItems.set(new Map<string, Service>());
+        this.tokensMap.clear();
+        this.tokensDuration.clear();
+        this.showDialog.set(false);
+        this.showEditDialog.set(false);
+        this.showDeleteDialog.set(false);
+        this.showPasswordChangeDialog.set(false);
+        this.askForPasswordStorage.set(false);
+        this.selectedService = undefined;
+        this.serviceToDelete = undefined;
+        this.encryptedPassword = "";
+        
+        // Clear stored encrypted password
+        this.localStorage.removeItem('encryptedPassword');
+        
+        // Emit authentication state as false
+        this.emitAuthenticationState(false);
+        
+        // Reset form
+        this.form.reset();
+        
+        this.messageService.add({
+            severity: 'info',
+            summary: this.translate.translate('Logged Out'),
+            detail: this.translate.translate('You have been logged out successfully!')
+        });
     }
 }
