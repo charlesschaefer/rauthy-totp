@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use tauri::State;
 use zeroize::Zeroize;
+use std::env;
 
 use crate::brandfetch::search_brand;
 use crate::crypto::*;
@@ -131,6 +132,241 @@ pub fn get_service_icon(
     state.storage.save_to_file(&app_handle).ok();
 
     Ok(service.icon.clone())
+}
+
+#[tauri::command]
+pub fn export_services_csv(
+    app_state: State<'_, Mutex<AppState>>,
+) -> Result<String, String> {
+    let state = app_state.lock().unwrap();
+    let services = state.storage.services();
+    
+    if services.is_empty() {
+        return Err("No services to export".to_string());
+    }
+
+    let mut csv_content = String::new();
+    
+    // CSV header
+    csv_content.push_str("Issuer,Name,Secret,Algorithm,Digits,Period,Icon\n");
+    
+    // CSV data rows
+    for service in services.values() {
+        let algorithm_str = match service.algorithm {
+            totp_rs::Algorithm::SHA1 => "SHA1",
+            totp_rs::Algorithm::SHA256 => "SHA256", 
+            totp_rs::Algorithm::SHA512 => "SHA512",
+        };
+        
+        // Escape CSV fields that contain commas or quotes
+        let issuer = escape_csv_field(&service.issuer);
+        let name = escape_csv_field(&service.name);
+        let secret = escape_csv_field(&service.secret);
+        let icon = escape_csv_field(&service.icon);
+        
+        csv_content.push_str(&format!(
+            "{},{},{},{},{},{},{}\n",
+            issuer,
+            name,
+            secret,
+            algorithm_str,
+            service.digits,
+            service.period,
+            icon
+        ));
+    }
+    
+    Ok(csv_content)
+}
+
+fn escape_csv_field(field: &str) -> String {
+    if field.contains(',') || field.contains('"') || field.contains('\n') {
+        let escaped = field.replace("\"", "\"\"");
+        format!("\"{}\"", escaped)
+    } else {
+        field.to_string()
+    }
+}
+
+#[tauri::command]
+pub fn import_services_csv(
+    app_handle: tauri::AppHandle,
+    app_state: State<'_, Mutex<AppState>>,
+    csv_content: String,
+) -> Result<ServiceMap, String> {
+    let mut state = app_state.lock().unwrap();
+    let mut imported_count = 0;
+    let mut errors = Vec::new();
+
+    let lines: Vec<&str> = csv_content.lines().collect();
+    if lines.is_empty() {
+        return Err("CSV file is empty".to_string());
+    }
+
+    // Skip header line
+    for (line_num, line) in lines.iter().enumerate().skip(1) {
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let fields: Vec<String> = parse_csv_line(line);
+        if fields.len() < 7 {
+            errors.push(format!("Line {}: Invalid CSV format, expected 7 fields", line_num + 1));
+            continue;
+        }
+
+        // Parse algorithm
+        let algorithm = match fields[3].to_uppercase().as_str() {
+            "SHA1" => totp_rs::Algorithm::SHA1,
+            "SHA256" => totp_rs::Algorithm::SHA256,
+            "SHA512" => totp_rs::Algorithm::SHA512,
+            _ => {
+                errors.push(format!("Line {}: Invalid algorithm '{}'", line_num + 1, fields[3]));
+                continue;
+            }
+        };
+
+        // Parse digits
+        let digits = match fields[4].parse::<usize>() {
+            Ok(d) => d,
+            Err(_) => {
+                errors.push(format!("Line {}: Invalid digits '{}'", line_num + 1, fields[4]));
+                continue;
+            }
+        };
+
+        // Parse period
+        let period = match fields[5].parse::<u64>() {
+            Ok(p) => p,
+            Err(_) => {
+                errors.push(format!("Line {}: Invalid period '{}'", line_num + 1, fields[5]));
+                continue;
+            }
+        };
+
+        // Create service
+        let mut service = crate::storage::Service::default();
+        service.issuer = fields[0].clone();
+        service.name = fields[1].clone();
+        service.secret = fields[2].clone();
+        service.algorithm = algorithm;
+        service.digits = digits;
+        service.period = period;
+        service.icon = fields[6].clone();
+        service.id = format!("{}{}", service.issuer, service.name);
+
+        state.storage.add_service(service);
+        imported_count += 1;
+    }
+
+    if imported_count == 0 {
+        return Err(format!("No valid services imported. Errors: {}", errors.join("; ")));
+    }
+
+    // Save the updated storage
+    state.storage.save_to_file(&app_handle).map_err(|_| "Failed to save storage".to_string())?;
+
+    let services = state.storage.services().clone();
+    Ok(services)
+}
+
+fn parse_csv_line(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut current_field = String::new();
+    let mut in_quotes = false;
+    let mut chars = line.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        match c {
+            '"' => {
+                if in_quotes && chars.peek() == Some(&'"') {
+                    // Escaped quote
+                    current_field.push('"');
+                    chars.next(); // Skip the second quote
+                } else {
+                    // Toggle quote state
+                    in_quotes = !in_quotes;
+                }
+            }
+            ',' => {
+                if in_quotes {
+                    current_field.push(c);
+                } else {
+                    fields.push(current_field.trim().to_string());
+                    current_field.clear();
+                }
+            }
+            _ => {
+                current_field.push(c);
+            }
+        }
+    }
+    
+    // Add the last field
+    fields.push(current_field.trim().to_string());
+    fields
+}
+
+#[tauri::command]
+pub fn change_password(
+    app_handle: tauri::AppHandle,
+    app_state: State<'_, Mutex<AppState>>,
+    mut new_password: String,
+) -> Result<(), String> {
+    let mut state = app_state.lock().unwrap();
+    
+    // Get current services from already decrypted storage
+    let services = state.storage.services().clone();
+    
+    if services.is_empty() {
+        return Err("No services to migrate".to_string());
+    }
+
+    // Create backup of current file
+    let current_path = state.storage.storage_path(&app_handle);
+    let backup_path = current_path.with_extension("bin.backup");
+    
+    if current_path.exists() {
+        std::fs::copy(&current_path, &backup_path)
+            .map_err(|_| "Failed to create backup file".to_string())?;
+    }
+
+    // Generate new salt and key
+    let new_salt = generate_salt();
+    let new_key = derive_key_from_password_and_salt(&new_password, Some(&new_salt))
+        .map_err(|_| "Failed to generate new key".to_string())?;
+
+    // Create new storage with new password
+    let mut new_storage = Storage::new(new_key.to_vec(), Some(new_salt));
+    
+    // Copy all services to new storage
+    for (_, service) in services {
+        new_storage.add_service(service);
+    }
+
+    // Save with new password
+    new_storage.save_to_file(&app_handle)
+        .map_err(|_| "Failed to save with new password".to_string())?;
+
+    // Update app state
+    state.storage = new_storage;
+
+    // Clear password from memory
+    new_password.clear();
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn close_services_file(
+    app_state: State<'_, Mutex<AppState>>,
+) -> Result<(), String> {
+    let mut state = app_state.lock().unwrap();
+    
+    // Clear the storage and reset to default state
+    state.storage = crate::storage::Storage::new(Vec::new(), None);
+    
+    Ok(())
 }
 
 #[cfg(mobile)]

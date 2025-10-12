@@ -30,6 +30,8 @@
         "@tauri-apps/api": "^2.3.0",
         "@tauri-apps/plugin-barcode-scanner": "^2.2.0",
         "@tauri-apps/plugin-biometric": "^2.2.0",
+        "@tauri-apps/plugin-dialog": "^2.2.0",
+        "@tauri-apps/plugin-fs": "^2.2.0",
         "@tauri-apps/plugin-opener": "^2",
         "hammerjs": "^2.0.8",
         "luxon": "^3.5.0",

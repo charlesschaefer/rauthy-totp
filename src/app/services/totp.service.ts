@@ -100,4 +100,24 @@ export class TotpService {
     deleteService(serviceId: number | string): Observable<void> {
         return from(invoke<void>('delete_service', { serviceId }));
     }
+
+    exportServicesCsv(): Observable<string> {
+        return from(invoke<string>('export_services_csv'));
+    }
+
+    importServicesCsv(csvContent: string): Observable<Map<string, Service>> {
+        return from(invoke<object>('import_services_csv', { csvContent }).then(services => {
+            this.setupServices(services);
+            this.services.next(this.servicesContent);
+            return this.servicesContent;
+        }));
+    }
+
+    changePassword(newPassword: string): Observable<void> {
+        return from(invoke<void>('change_password', { newPassword }));
+    }
+
+    closeServicesFile(): Observable<void> {
+        return from(invoke<void>('close_services_file'));
+    }
 } 

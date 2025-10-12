@@ -8,6 +8,7 @@ import { RippleModule } from 'primeng/ripple';
 import { InputTextModule } from 'primeng/inputtext';
 import { AutoFocusModule } from 'primeng/autofocus';
 import { MenuModule } from 'primeng/menu';
+import { TooltipModule } from 'primeng/tooltip';
 import { NgxSwipeMenuComponent, SwipeMenuActions } from 'ngx-swipe-menu';
 import { FormsModule } from '@angular/forms';
 
@@ -31,6 +32,7 @@ import { isMobile } from '../../utils/platform';
     InputTextModule,
     AutoFocusModule,
     MenuModule,
+    TooltipModule,
     NgxSwipeMenuComponent,
     ServiceItemComponent
 ],

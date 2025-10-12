@@ -18,7 +18,10 @@ const IS_MOBILE: bool = true;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
-    builder = builder.plugin(tauri_plugin_fs::init()).setup(|app| {
+    builder = builder
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
         #[cfg(desktop)]
         {
             desktop::setup_system_tray_icon(app);
@@ -63,6 +66,10 @@ pub fn run() {
             commands::update_service,
             commands::delete_service,
             commands::get_service_icon,
+            commands::export_services_csv,
+            commands::import_services_csv,
+            commands::change_password,
+            commands::close_services_file,
             #[cfg(mobile)]
             commands::fetch_without_pass,
         ])
