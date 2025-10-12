@@ -1,0 +1,8 @@
+{
+  "productName": "rauthy",
+  "identifier": "com.rauthy",
+  "build": {
+    "devUrl": "http://192.168.1.12:1420",
+    "beforeDevCommand": "npm run start -- --host 192.168.1.12 --public-host 192.168.1.12"
+  }
+}
