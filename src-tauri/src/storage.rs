@@ -1,8 +1,7 @@
-use bincode;
+use bincode::{self, config};
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
 use std::collections::HashMap;
-use std::fmt::format;
 use std::fs::File;
 use std::io::{Read, Write, Result as IoResult, Error as IoError};
 use std::path::PathBuf;
@@ -262,7 +261,8 @@ impl Storage {
         let salt_offset = buf.len() - SALT_LEN;
         let (encrypted_data, _salt_bytes) = buf.split_at(salt_offset);
         if let Ok(decrypted_data) = crypto::decrypt_data(encrypted_data.to_vec(), key.as_slice()) {
-            self.services = bincode::deserialize(&decrypted_data).unwrap();
+            let (services, _): (ServiceMap, _) = bincode::serde::decode_from_slice(&decrypted_data, config::legacy()).unwrap();
+            self.services = services;
             return Ok(self.services.clone());
         }
 
@@ -270,7 +270,8 @@ impl Storage {
         // Salt is fixed, so we use the fixed salt
         match crypto::decrypt_data(buf.clone(), key.as_slice()) {
             Ok(decrypted_data) => {
-                self.services = bincode::deserialize(&decrypted_data).unwrap();
+                let (services, _): (ServiceMap, _) = bincode::serde::decode_from_slice(&decrypted_data, config::legacy()).unwrap();
+                self.services = services;
                 return Ok(self.services.clone());
             }
             Err(_) => return Err(StorageError::Generic("Couldn't decrypt the data with the provided key")),
@@ -307,7 +308,7 @@ impl Storage {
         let key = self.signing_key.clone();
         let salt = self.salt.clone().unwrap();
 
-        let serialized_services = bincode::serialize(&self.services).map_err(|_| ())?;
+        let serialized_services = bincode::serde::encode_to_vec(&self.services, config::legacy()).map_err(|_| ())?;
         let mut encrypted_data = crypto::encrypt_data(serialized_services, &key).map_err(|_| ())?;
         
         // Append the salt to the end of the encrypted data
