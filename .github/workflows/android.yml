@@ -46,7 +46,7 @@ jobs:
                 key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
             - name: Install dependencies
-              run: npm install
+              run: npm ci
             
             - name: Generate npm cache
               uses: actions/cache/save@v4
