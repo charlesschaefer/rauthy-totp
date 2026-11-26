@@ -100,21 +100,7 @@ impl TryFrom<TOTP> for Service {
         service.digits = totp.digits;
         service.period = totp.step;
 
-        // @TODO: set the client_id here
-        let client_id = env!(
-            "BRANDFETCH_USER_ID",
-            "Brandfetch user_id env var not defined"
-        );
-        match search_brand(service.issuer.as_str(), client_id) {
-            Ok(brands) => {
-                if brands.len() > 0 {
-                    service.icon = brands.first().unwrap().icon.clone();
-                }
-            }
-            Err(err) => {
-                dbg!("Error searching brand logo: {}", err);
-            }
-        }
+        service.icon = find_brand_icon(service.issuer.as_str()).unwrap_or_default();
 
         Ok(service)
     }
