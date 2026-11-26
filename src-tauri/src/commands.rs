@@ -2,9 +2,8 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use tauri::State;
 use zeroize::Zeroize;
-use std::env;
 
-use crate::brandfetch::search_brand;
+use crate::brandfetch::find_brand_icon;
 use crate::crypto::*;
 use crate::state::AppState;
 use crate::storage::*;
@@ -103,35 +102,29 @@ pub fn delete_service(
 }
 
 #[tauri::command]
-pub fn get_service_icon(
+pub async fn get_service_icon(
     app_handle: tauri::AppHandle,
     app_state: State<'_, Mutex<AppState>>,
     service_id: String,
 ) -> Result<String, ()> {
+    let issuer = {
+        let state = app_state.lock().unwrap();
+        state.storage.services().get(service_id.as_str()).ok_or(())?.issuer.clone()
+    };
+
+    // Network calls run without holding the state lock and off the main thread
+    let icon = tauri::async_runtime::spawn_blocking(move || find_brand_icon(&issuer))
+        .await
+        .map_err(|_| ())?
+        .unwrap_or_default();
+
     let mut state = app_state.lock().unwrap();
-    let cloned_services = state.storage.services().clone();
-    let mut service = cloned_services.get(service_id.as_str()).unwrap().clone();
-
-    let client_id = env!(
-        "BRANDFETCH_USER_ID",
-        "Brandfetch user_id env var not defined"
-    );
-
-    match search_brand(&service.issuer.as_str(), client_id) {
-        Ok(brands) => {
-            if brands.len() > 0 {
-                service.icon = brands.first().unwrap().icon.clone();
-            }
-        }
-        Err(err) => {
-            service.icon = "".to_string();
-            dbg!("Error searching brand logo: {}", err);
-        }
-    }
-    state.storage.add_service(service.clone());
+    let mut service = state.storage.services().get(service_id.as_str()).ok_or(())?.clone();
+    service.icon = icon.clone();
+    state.storage.update_service(service);
     state.storage.save_to_file(&app_handle).ok();
 
-    Ok(service.icon.clone())
+    Ok(icon)
 }
 
 #[tauri::command]
