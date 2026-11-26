@@ -2,5 +2,8 @@
     <!-- Base application theme. -->
     <style name="Theme.rauthy" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
+        <!-- Dark status/navigation bar icons over the light app background (edge-to-edge, Android 15+) -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
     </style>
 </resources>
