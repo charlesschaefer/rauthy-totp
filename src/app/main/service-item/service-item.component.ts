@@ -9,6 +9,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { AutoFocusModule } from 'primeng/autofocus';
 import { MenuModule } from 'primeng/menu';
 import { FormsModule } from '@angular/forms';
+import { invoke } from '@tauri-apps/api/core';
 
 import { TotpToken } from '../../models/token.model';
 import { Service } from '../../models/service.model';
@@ -70,12 +71,25 @@ export class ServiceItemComponent {
 
     onImageError(event: any, service: Service) {
         console.error("Couldn't load service logo at: ", event.srcElement?.currentSrc);
-        
-        if (this.service.id == service.id) {
-            this.service.icon = "";
+
+        if (this.service.id != service.id) {
+            return;
         }
 
+        const failedIcon = this.service.icon;
+        this.service.icon = "";
         this.itemChange.emit();
+
+        // Services saved by older versions store the remote Brandfetch URL, which
+        // expires. Fetch the icon again so it gets stored embedded in the service.
+        if (failedIcon?.startsWith("http")) {
+            invoke<string>('get_service_icon', { serviceId: this.service.id })
+                .then((icon: string) => {
+                    this.service.icon = icon;
+                    this.itemChange.emit();
+                })
+                .catch((err) => console.error("Couldn't refresh service logo: ", err));
+        }
     }
 
 }
